@@ -1,0 +1,35 @@
+/*
+ * Shared low-level text styles, composed into component-local classes via
+ * CSS Modules `composes` (e.g. `composes: eyebrow from '../../../styles/typography.module.css';`).
+ * Keeps every "Suisse Intl Medium, uppercase, +3px tracking" label in the
+ * design consistent without repeating the same five declarations everywhere.
+ */
+
+.eyebrow {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+}
+
+.eyebrowSm {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: var(--fs-eyebrow-sm);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+}
+
+.bodyText {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+}
+
+.displayHeading {
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: var(--lh-heading);
+}

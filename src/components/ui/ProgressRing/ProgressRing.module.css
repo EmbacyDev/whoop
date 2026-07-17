@@ -1,0 +1,17 @@
+.ring {
+  display: block;
+  transform: rotate(-90deg);
+}
+
+.track {
+  fill: none;
+  stroke: rgb(255 255 255 / 12%);
+}
+
+.value {
+  fill: none;
+  stroke-linecap: round;
+  /* Exposed as a transition target for a future animated reveal
+     (e.g. animating from 0 to the final value on scroll/in-view). */
+  transition: stroke-dashoffset var(--duration-slow) var(--ease-standard);
+}

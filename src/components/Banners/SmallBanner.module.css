@@ -1,0 +1,141 @@
+.card {
+  position: relative;
+  display: flex;
+  /* flex-basis is a *height* basis once .smallBanners switches to a column
+     axis below 900px, which would otherwise fight `aspect-ratio` for the
+     card's height — reset to auto there so width (stretched to 100%) is the
+     only input and aspect-ratio derives the height correctly. */
+  flex: 1 1 20rem;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+  border-radius: var(--radius-banner-mobile);
+  aspect-ratio: 443 / 581;
+  padding: var(--space-md);
+  isolation: isolate;
+}
+
+@media (max-width: 899px) {
+  .card {
+    flex: 0 1 auto;
+    width: 100%;
+  }
+}
+
+@media (min-width: 768px) {
+  .card {
+    border-radius: var(--radius-lg);
+    padding: 2.25rem; /* 36px — Figma "sm banner 1" / "sm banner 2" desktop padding */
+  }
+
+  /* Figma's "sm banner 3" (AI Coach) uses a tighter 28px desktop padding
+     than its siblings — applied as an extra class alongside `.card`. */
+  .cardTight {
+    padding: 1.75rem; /* 28px */
+  }
+}
+
+/*
+ * Entrance wrapper for the banner photo: fades + translates in the first
+ * time the card enters the viewport (toggled via `data-visible`, set by
+ * `useRevealOnScroll`). Clips the oversized `.image` so the continuous
+ * parallax offset (`useParallax`) never reveals an edge.
+ */
+.imageReveal {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(20px);
+  transition:
+    opacity 0.9s var(--ease-standard),
+    transform 0.9s var(--ease-standard);
+}
+
+.imageReveal[data-visible='true'] {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/*
+ * The bleed-inclusive source photos carry their own real extra content
+ * top/bottom. Mobile crops have substantially more headroom than desktop
+ * crops, so the buffer is split by breakpoint instead of using one
+ * in-between value — using the mobile amount on desktop would reintroduce
+ * the "zoomed in" look the bleed-inclusive photos were meant to fix.
+ */
+.image {
+  position: absolute;
+  top: -8%;
+  left: 0;
+  width: 100%;
+  height: 116%;
+  object-fit: cover;
+  will-change: transform;
+}
+
+@media (min-width: 768px) {
+  .image {
+    top: -4.5%;
+    height: 109%;
+  }
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, rgb(0 0 0 / 0%) 60%, rgb(42 36 30 / 78%) 100%);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem; /* 12px per Figma, both breakpoints */
+}
+
+/*
+ * NOTE: deliberately not composing `bodyText` here — same cascade-ordering
+ * hazard as BigBanner's `.title` (see that file). Declared inline per
+ * Figma's "Desktop/Heading 4 — 18" spec: Suisse Intl Book (450), 18px,
+ * line-height 1.1.
+ */
+.titleDark {
+  font-family: var(--font-body);
+  font-weight: 450;
+  font-size: var(--fs-banner-title-sm);
+  line-height: 1.1;
+  color: var(--color-ink);
+}
+
+.titleLight {
+  font-family: var(--font-body);
+  font-weight: 450;
+  font-size: var(--fs-banner-title-sm);
+  line-height: 1.1;
+  color: var(--color-cream);
+}
+
+.descriptionDark {
+  composes: bodyText from '../../styles/typography.module.css';
+  color: var(--color-ink-50);
+}
+
+.descriptionLight {
+  composes: bodyText from '../../styles/typography.module.css';
+  color: var(--color-cream-60);
+}
+
+.pill {
+  composes: eyebrowSm from '../../styles/typography.module.css';
+  position: absolute;
+  padding: 0.5rem 0.75rem;
+  background: linear-gradient(180deg, rgb(42 34 26 / 40%), rgb(65 61 50 / 4%));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 0.5px solid var(--color-cream);
+  border-radius: var(--radius-pill);
+  color: var(--color-cream-80);
+  white-space: nowrap;
+}

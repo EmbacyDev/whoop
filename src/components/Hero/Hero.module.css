@@ -1,0 +1,80 @@
+.hero {
+  /* Sticky so Block 2 can rise over the hero (WHOOP-style panel overlap). */
+  position: sticky;
+  top: 0;
+  z-index: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+  /* Same token as the fixed header — used for true vertical centering below it. */
+  --hero-header-height: clamp(3.5rem, 2.5vw + 3rem, 4.3rem);
+}
+
+.background {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+
+.backgroundImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/*
+ * Vertically center the title in the band beneath the fixed header.
+ * top = midpoint of (header … 100%), then pull back by half the title height.
+ * Reveal animation preserves that center (offset from -50%, not from 0).
+ */
+.title {
+  composes: displayHeading from '../../styles/typography.module.css';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--hero-header-height) + (100% - var(--hero-header-height)) / 2);
+  margin: 0;
+  text-align: center;
+  font-size: var(--fs-hero);
+  letter-spacing: -0.03em;
+  color: var(--color-cream);
+  text-transform: capitalize;
+  padding-inline: var(--gutter);
+  opacity: 0;
+  transform: translateY(calc(-50% + 16px));
+  transition:
+    opacity var(--duration-slow) var(--ease-standard),
+    transform var(--duration-slow) var(--ease-standard);
+}
+
+/*
+ * Figma Scroll 1 (768 frame): scroll control sits ~190px from the bottom
+ * (pb-[190px]), below the centered title without shifting its center.
+ */
+.indicator {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(5rem, 24.7vh, 11.875rem);
+  transform: translate(-50%, 10px);
+  opacity: 0;
+  transition:
+    opacity var(--duration-slow) var(--ease-standard) 120ms,
+    transform var(--duration-slow) var(--ease-standard) 120ms;
+}
+
+.revealed .title {
+  opacity: 1;
+  transform: translateY(-50%);
+}
+
+.revealed .indicator {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* Reserved anchor point for the future pinned-scroll phone sequence
+   (Figma "Scroll 2" \u2192 "Scroll 6" / PhoneMockup). Rendering nothing here
+   yet keeps this iteration to the static "Scroll 1" state only. */
+.stageSlot {
+  display: none;
+}

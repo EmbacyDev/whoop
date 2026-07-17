@@ -1,0 +1,24 @@
+# Dependencies
+node_modules
+.node-runtime
+
+# Build output
+dist
+dist-ssr
+*.tsbuildinfo
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Editor / OS
+.DS_Store
+*.local
+
+# Env
+.env
+.env.*
+!.env.example
+
+.verify/

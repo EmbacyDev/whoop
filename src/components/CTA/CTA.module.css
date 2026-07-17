@@ -1,0 +1,131 @@
+.section {
+  background: var(--color-cream);
+  padding-block: var(--space-2xl);
+}
+
+/* Composed-block entrance: the whole panel fades/lifts in once, as the
+   section enters the viewport. */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 0.9s var(--ease-standard),
+    transform 0.9s var(--ease-standard);
+}
+
+.reveal[data-visible='true'] {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.panel {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  aspect-ratio: 355 / 680;
+  isolation: isolate;
+}
+
+@media (min-width: 768px) {
+  .panel {
+    aspect-ratio: 1344 / 600;
+  }
+}
+
+.image {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+}
+
+@media (min-width: 768px) {
+  .image {
+    /*
+     * New desktop asset (2016×900) matches the panel ratio (1344/600) 1:1 —
+     * cover + center shows the prepared composition without re-cropping.
+     * On wider viewports the same ratio holds, so the band stays on the right.
+     */
+    object-fit: cover;
+    object-position: center center;
+  }
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(90deg, rgb(0 0 0 / 45%) 20%, rgb(0 0 0 / 0%) 55%);
+}
+
+.text {
+  position: absolute;
+  top: var(--space-lg);
+  left: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-md);
+  width: calc(100% - 2 * var(--space-md));
+}
+
+@media (min-width: 768px) {
+  .text {
+    top: 50%;
+    /*
+     * Figma CTA panel (1344×600): text left edge is 140px from the panel.
+     * Pin that inset directly — the 50%-338.5px+translateX(-50%) formula
+     * only yields 140px on a full 1344 panel, not on the padded content box.
+     */
+    left: 8.75rem; /* 140px */
+    transform: translateY(-50%);
+    width: min(24.1875rem, calc(100% - 2 * var(--gutter)));
+  }
+}
+
+.title {
+  composes: displayHeading from '../../styles/typography.module.css';
+  font-size: var(--fs-h1);
+  letter-spacing: -0.01em;
+  color: var(--color-cream);
+}
+
+.description {
+  composes: bodyText from '../../styles/typography.module.css';
+  color: var(--color-cream-60);
+  margin-top: var(--space-xs);
+}
+
+.copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+/*
+ * The prepared CTA assets already include the "Hustle on your body's terms"
+ * pill in-frame. Keep the markup for a11y/fallback but hide the duplicate
+ * HTML chip so the asset composition stays the source of truth.
+ */
+.label {
+  position: absolute;
+  right: var(--space-md);
+  bottom: 12%;
+  padding: 0.5rem 1.25rem;
+  background: rgb(150 143 115 / 50%);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: var(--radius-pill);
+  color: var(--color-cream);
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: var(--fs-eyebrow-sm);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  text-align: center;
+  line-height: 1.36;
+  display: none;
+}

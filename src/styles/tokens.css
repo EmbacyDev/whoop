@@ -1,0 +1,97 @@
+:root {
+  /* ---------------------------------------------------------------------
+   * Color
+   * Sampled directly from the Figma "Development" page design tokens.
+   * ------------------------------------------------------------------- */
+  --color-cream: #f9f3ec; /* "Light beige" — light section bg / text-on-dark */
+  --color-ink: #221f1b; /* "Black" — primary text on light sections */
+  --color-brown: #41311a; /* "Brown" — button fill, active timeline pill */
+  --color-clay: #655743; /* timeline dot */
+  --color-black: #0a0a0a; /* header / footer background */
+
+  --color-ink-50: rgb(0 0 0 / 50%); /* secondary text on light sections */
+  --color-ink-20: rgb(0 0 0 / 20%);
+  --color-cream-98: rgb(249 243 236 / 98%);
+  --color-cream-80: rgb(249 243 236 / 80%);
+  --color-cream-60: rgb(249 243 236 / 60%);
+  --color-cream-40: rgb(249 243 236 / 40%);
+  --color-cream-30: rgb(249 243 236 / 30%);
+  --color-cream-20: rgb(249 243 236 / 20%);
+  --color-brown-80: rgb(65 49 26 / 80%);
+  --color-brown-20: rgb(65 49 26 / 20%);
+
+  --color-signal-green: #8bc34a;
+  --color-signal-red: #d9534f;
+  --color-signal-orange: #e08a3c;
+
+  /* ---------------------------------------------------------------------
+   * Typography
+   * ------------------------------------------------------------------- */
+  --font-display: 'Reckless Neue', Georgia, 'Times New Roman', serif;
+  --font-body: 'Suisse Intl', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+
+  /* Fluid scale interpolated between the 375px mobile and 1440px desktop
+     comps, then capped so nothing keeps growing past desktop. */
+  --fs-hero: clamp(2rem, 1.3rem + 3vw, 4rem); /* 32px \u2192 64px */
+  --fs-h1: clamp(1.75rem, 1.5rem + 1.13vw, 2.5rem); /* 28px \u2192 40px */
+  --fs-h3: clamp(1.25rem, 1.1rem + 0.65vw, 1.5rem); /* 20px \u2192 24px */
+  --fs-h4: clamp(1.0625rem, 0.98rem + 0.35vw, 1.125rem); /* 17px \u2192 18px */
+  --fs-body: clamp(0.9375rem, 0.9rem + 0.15vw, 1rem); /* 15px \u2192 16px */
+  --fs-small: 0.875rem; /* 14px \u2014 buttons */
+  --fs-eyebrow: 0.6875rem; /* 11px \u2014 uppercase labels */
+  --fs-eyebrow-sm: 0.625rem; /* 10px */
+
+  /* Block 2 banner titles \u2014 exact Figma values (22px \u2192 24px large banner,
+     flat 18px small banners at both mobile and desktop). */
+  --fs-banner-title-lg: clamp(1.375rem, 1.33rem + 0.19vw, 1.5rem); /* 22px \u2192 24px */
+  --fs-banner-title-sm: 1.125rem; /* 18px, fixed */
+
+  --lh-tight: 1.15;
+  --lh-heading: 1.2;
+  --lh-body: 1.4;
+
+  --tracking-eyebrow: 0.1875rem; /* 3px uppercase label tracking */
+  --tracking-button: 0.03125rem; /* 0.5px */
+
+  /* ---------------------------------------------------------------------
+   * Spacing (fluid, 375 \u2192 1440 comps), plus a hard cap so large screens
+   * gain breathing room instead of infinitely scaling.
+   * ------------------------------------------------------------------- */
+  --space-2xs: clamp(0.5rem, 0.4vw + 0.4rem, 0.75rem);
+  --space-xs: clamp(0.75rem, 0.6vw + 0.6rem, 1rem);
+  --space-sm: clamp(1rem, 1vw + 0.75rem, 1.5rem);
+  --space-md: clamp(1.5rem, 2vw + 1rem, 2.5rem);
+  --space-lg: clamp(2.5rem, 3vw + 1.5rem, 4rem);
+  --space-xl: clamp(3.5rem, 5vw + 2rem, 6.25rem);
+  --space-2xl: clamp(5rem, 7vw + 2.5rem, 9rem);
+
+  /* Section side gutters — grows with viewport, caps at desktop gutter. */
+  --gutter: clamp(1rem, 4vw, 3rem);
+
+  /* Content max-widths so large (up to ~1920px) screens keep the original
+     composition rather than stretching elements edge-to-edge. */
+  --max-width-content: 84rem; /* 1344px \u2014 inner content (matches 1440 - 2*48 gutter) */
+  --max-width-page: 120rem; /* 1920px \u2014 outer ceiling */
+  --max-width-copy: 28rem; /* ~448px \u2014 wraps body copy at comfortable measure */
+
+  /* ---------------------------------------------------------------------
+   * Radii / blur / motion
+   * ------------------------------------------------------------------- */
+  --radius-sm: 0.875rem; /* 14px \u2014 buttons */
+  --radius-md: 1.25rem; /* 20px */
+  --radius-lg: 2rem; /* 32px \u2014 small banners (desktop) */
+  --radius-xl: 2.5rem; /* 40px \u2014 big banner (desktop) / CTA */
+  --radius-banner-mobile: 1.5rem; /* 24px \u2014 all Block 2 banners on mobile per Figma */
+  --radius-pill: 5rem;
+
+  --blur-glass: 8px;
+  --blur-glass-lg: 30px;
+
+  --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-fast: 200ms;
+  --duration-base: 400ms;
+  --duration-slow: 800ms;
+
+  --z-header: 50;
+  --z-preloader: 100;
+}

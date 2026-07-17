@@ -1,0 +1,13 @@
+.app {
+  min-height: 100vh;
+}
+
+/*
+ * Keep post-hero sections above the sticky Hero so Block 2 (and everything
+ * after) paints as a foreground panel when scrolling down and back up —
+ * matching whoop.com’s full-bleed hero → next-module cover.
+ */
+.app main > :not(:first-child) {
+  position: relative;
+  z-index: 1;
+}

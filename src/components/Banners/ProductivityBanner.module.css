@@ -1,0 +1,67 @@
+.card {
+  composes: card from './SmallBanner.module.css';
+  gap: var(--space-sm);
+  background: linear-gradient(143deg, #bfb29b 0%, #f2e4d5 48%, #dbd1bb 96%);
+}
+
+/*
+ * Figma sm banner 1 (1175:10254): widget 216×208 with pt 130 on a 443×581
+ * card. Desktop photo embeds that widget on beige — size the bitmap to the
+ * card width (widget ≈ 48.5% of export width) and pull it up so the widget
+ * top lands on Figma’s pt 130.
+ */
+.imageArea {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  margin: calc(-1 * var(--space-md)) calc(-1 * var(--space-md)) 0;
+  opacity: 0;
+  transform: translateY(20px);
+  transition:
+    opacity 0.9s var(--ease-standard),
+    transform 0.9s var(--ease-standard);
+}
+
+.imageArea[data-visible='true'] {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (min-width: 768px) {
+  .imageArea {
+    margin: -2.25rem -2.25rem 0;
+  }
+}
+
+.image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+}
+
+@media (min-width: 768px) {
+  .image {
+    /* In-flow sizing — avoids absolute inset stretching the bitmap. */
+    position: relative;
+    inset: unset;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    left: auto;
+    display: block;
+    width: 100%;
+    height: auto;
+    margin-top: -8%;
+    object-fit: contain;
+    object-position: center top;
+  }
+}
+
+.text {
+  position: relative;
+  z-index: 1;
+}

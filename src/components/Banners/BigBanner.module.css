@@ -1,0 +1,115 @@
+.banner {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-banner-mobile);
+  aspect-ratio: 355 / 600;
+  isolation: isolate;
+}
+
+/*
+ * Entrance wrapper for the banner photo: fades + translates in the first
+ * time the banner enters the viewport (toggled via `data-visible`, set by
+ * `useRevealOnScroll`). Clips the oversized `.image` so the continuous
+ * parallax offset (`useParallax`) never reveals an edge. The Sharpness card
+ * is baked into the photo itself.
+ */
+.imageReveal {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 0.9s var(--ease-standard),
+    transform 0.9s var(--ease-standard);
+}
+
+.imageReveal[data-visible='true'] {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/*
+ * The bleed-inclusive source photos now carry their own real extra content
+ * top/bottom (baked in at export), so this only needs a buffer matched to
+ * that bleed plus a small safety margin for `useParallax` (strength 14px) —
+ * no more upscaled "zoom" than the source photo actually contains. The
+ * tightest point is right at the mobile→desktop aspect-ratio switch
+ * (768px), where the card is shortest relative to its own height.
+ */
+.image {
+  position: absolute;
+  top: -5%;
+  left: 0;
+  width: 100%;
+  height: 110%;
+  object-fit: cover;
+  will-change: transform;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, rgb(0 0 0 / 0%) 55%, rgb(0 0 0 / 35%) 100%);
+}
+
+.text {
+  position: absolute;
+  top: 4.25rem; /* 68px per Figma mobile */
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem; /* 16px per Figma mobile */
+  text-align: center;
+  width: min(20rem, calc(100% - 3rem));
+  color: var(--color-cream);
+}
+
+/*
+ * NOTE: deliberately not composing `bodyText` here — it also declares
+ * `font-size`/`line-height`, and depending on CSS Modules bundle order that
+ * can win the cascade over this class's own values (same specificity, later
+ * in the sheet). Declaring the full Figma "Desktop/Heading 3 — 24" spec
+ * inline avoids the ordering hazard entirely.
+ */
+.title {
+  font-family: var(--font-body);
+  font-weight: 450;
+  font-size: var(--fs-banner-title-lg);
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+.description {
+  composes: bodyText from '../../styles/typography.module.css';
+  color: var(--color-cream-80);
+}
+
+@media (min-width: 768px) {
+  .banner {
+    border-radius: var(--radius-xl);
+    aspect-ratio: 1344 / 580;
+  }
+
+  .overlay {
+    background: linear-gradient(93deg, rgb(0 0 0 / 0%) 45%, rgb(0 0 0 / 45%) 75%);
+  }
+
+  .metric {
+    top: var(--space-md);
+    left: var(--gutter);
+  }
+
+  .text {
+    top: 50%;
+    left: auto;
+    right: clamp(var(--gutter), 8vw, 6.5rem);
+    transform: translateY(-50%);
+    width: 21.125rem; /* 338px per Figma */
+    gap: 0.875rem; /* 14px per Figma desktop */
+  }
+}

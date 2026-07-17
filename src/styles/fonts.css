@@ -1,0 +1,38 @@
+/*
+ * Local font faces.
+ *
+ * Reckless Neue — display serif, used for all headings.
+ * Suisse Intl — body copy + UI text (Regular / Book / Medium).
+ */
+
+@font-face {
+  font-family: 'Reckless Neue';
+  src: url('../assets/fonts/RecklessNeue-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Suisse Intl';
+  src: url('../assets/fonts/SuisseIntl-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Suisse Intl';
+  src: url('../assets/fonts/SuisseIntl-Book.otf') format('opentype');
+  font-weight: 450;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Suisse Intl';
+  src: url('../assets/fonts/SuisseIntl-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}

@@ -1,0 +1,59 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2xs);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  transition:
+    background-color var(--duration-base) var(--ease-standard),
+    border-color var(--duration-base) var(--ease-standard),
+    color var(--duration-base) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
+}
+
+.button:active {
+  transform: scale(0.97);
+}
+
+/* variant: solid \u2014 e.g. CTA "Activate now". Default/hover states are the
+   two variants defined on the Figma "button" component. */
+.solid {
+  padding: 0.625rem 2rem;
+  font-family: var(--font-body);
+  font-weight: 450;
+  font-size: var(--fs-small);
+  letter-spacing: var(--tracking-button);
+  background: var(--color-brown);
+  color: var(--color-cream);
+  border: 0.5px solid transparent;
+}
+
+.solid:hover {
+  background: var(--color-cream-30);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border-color: var(--color-cream);
+  color: var(--color-cream);
+}
+
+/* variant: ghost \u2014 e.g. hero "Scroll \u2193" indicator, header secondary nav
+   pill. No hover variant is defined in Figma for this one; a subtle opacity
+   lift is added purely as a baseline interactive affordance. */
+.ghost {
+  composes: eyebrow from '../../../styles/typography.module.css';
+  padding: 0.5rem 1rem;
+  background: var(--color-cream-20);
+  backdrop-filter: blur(var(--blur-glass));
+  -webkit-backdrop-filter: blur(var(--blur-glass));
+  color: var(--color-cream);
+  border-radius: var(--radius-pill);
+}
+
+.ghost:hover {
+  background: var(--color-cream-30);
+}
+
+.sizeSm {
+  padding: 0.5rem 1.25rem;
+}

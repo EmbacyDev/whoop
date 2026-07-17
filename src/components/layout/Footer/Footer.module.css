@@ -1,0 +1,140 @@
+.footer {
+  background: var(--color-black);
+  color: var(--color-cream-80);
+  padding-block: var(--space-xl) var(--space-lg);
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-lg) var(--space-md);
+  padding-bottom: var(--space-xl);
+  border-bottom: 1px solid rgb(255 255 255 / 10%);
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.columnHeading {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-cream-40);
+}
+
+.columnLinks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.columnLinks a {
+  font-size: 0.8rem;
+  color: var(--color-cream-80);
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.columnLinks a:hover {
+  color: var(--color-cream);
+}
+
+.bottom {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  padding-top: var(--space-xl);
+}
+
+.brandRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.wordmark {
+  display: block;
+  width: clamp(7.5rem, 12vw, 10.5rem);
+  height: auto;
+  color: var(--color-cream);
+}
+
+.mission {
+  font-size: 0.85rem;
+  color: var(--color-cream-60);
+  max-width: 24rem;
+}
+
+.newsletter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+}
+
+.newsletterForm {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  border-bottom: 1px solid var(--color-cream-40);
+  padding-bottom: 0.6rem;
+}
+
+.newsletterInput {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--color-cream);
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.newsletterInput::placeholder {
+  color: var(--color-cream-40);
+}
+
+.newsletterSubmit {
+  font-size: 0.8rem;
+  color: var(--color-cream-80);
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.newsletterSubmit:hover {
+  color: var(--color-cream);
+}
+
+.newsletterHint {
+  font-size: 0.7rem;
+  color: var(--color-cream-40);
+}
+
+.legalRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--color-cream-40);
+}
+
+@media (min-width: 640px) {
+  .columns {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 900px) {
+  .columns {
+    grid-template-columns: repeat(6, 1fr);
+  }
+
+  .bottom {
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+
+  .newsletter {
+    width: min(22rem, 100%);
+  }
+}

@@ -1,0 +1,38 @@
+/*
+ * Reusable device-frame shell for the Hero's future scroll-driven phone
+ * (Figma "Scroll 2" \u2192 "Scroll 6"). Not rendered by Hero yet \u2014 first
+ * iteration only ships the static "Scroll 1" state \u2014 but built now so the
+ * pinned-scroll interaction can drop screen content in later without
+ * rebuilding the frame itself.
+ */
+.frame {
+  position: relative;
+  width: min(19rem, 100%);
+  aspect-ratio: 750 / 1624;
+  border-radius: 2.6rem;
+  background: #0b0b0c;
+  border: 2px solid rgb(255 255 255 / 8%);
+  box-shadow: 0 40px 80px -30px rgb(0 0 0 / 55%);
+  padding: 0.5rem;
+}
+
+.notch {
+  position: absolute;
+  top: 0.9rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 34%;
+  height: 1.6rem;
+  background: #0b0b0c;
+  border-radius: 999px;
+  z-index: 2;
+}
+
+.screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 2.1rem;
+  overflow: hidden;
+  background: #05252b;
+}

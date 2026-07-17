@@ -1,0 +1,93 @@
+.section {
+  /*
+   * Foreground panel over the sticky Hero (whoop.com-style). Rounded top
+   * corners read as the panel sliding up; cream fill covers the hero with
+   * no gap. z-index keeps the stack stable in both scroll directions.
+   */
+  position: relative;
+  z-index: 1;
+  background: var(--color-cream);
+  padding-block: var(--space-2xl);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  /* Kill sub-pixel seams between sticky hero and this panel. */
+  margin-top: -1px;
+  padding-top: calc(var(--space-2xl) + 1px);
+  overflow: visible;
+}
+
+/*
+ * Explicit px values here (rather than the shared fluid `--space-*` scale)
+ * because Figma's Block 2 uses tighter, flatter spacing than the rest of
+ * the page at both of its two breakpoints — title↔subtitle gap 24px mobile
+ * / 28px desktop, title-block↔content gap 40px mobile / 80px desktop.
+ */
+.heading {
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+
+@media (min-width: 768px) {
+  .heading {
+    gap: 1.75rem;
+    margin-bottom: 5rem;
+  }
+}
+
+/* Design-breakpoint (1440px) subtitle measure is ~400px; grows modestly on
+   larger desktop screens instead of stretching to match the rest of the
+   fluid scale, then holds so it never reads as oversized at ~1920px. */
+.subtitle {
+  max-width: clamp(25rem, 25rem + (100vw - 90rem) * 0.15, 28rem);
+}
+
+/* Figma: 8px gap between the big banner and the small-banner row, and
+   between each small banner, at both breakpoints. */
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.smallBanners {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/*
+ * Composed-block entrance: the section fades/lifts in once as it enters the
+ * viewport, with the big banner appearing first and the small-banner row
+ * following with a subtle stagger — not each card animating on its own.
+ * `.group` carries no visual styling of its own, only the `data-visible`
+ * flag from `useRevealOnScroll`.
+ */
+.group .heading,
+.group .bigBannerStage {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 0.9s var(--ease-standard),
+    transform 0.9s var(--ease-standard);
+}
+
+.group .smallBannersStage {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 0.9s var(--ease-standard),
+    transform 0.9s var(--ease-standard);
+  transition-delay: 0.12s;
+}
+
+.group[data-visible='true'] .heading,
+.group[data-visible='true'] .bigBannerStage,
+.group[data-visible='true'] .smallBannersStage {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (min-width: 900px) {
+  .smallBanners {
+    flex-direction: row;
+  }
+}

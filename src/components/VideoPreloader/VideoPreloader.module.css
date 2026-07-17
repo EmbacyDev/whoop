@@ -1,0 +1,28 @@
+.preloader {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-preloader);
+  background: var(--color-black);
+  opacity: 1;
+  transition: opacity 900ms var(--ease-standard);
+}
+
+.ended {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Reserved for the future Skip button (not implemented this iteration).
+   Keeping the slot here means adding it later is a drop-in, not a
+   restructure of VideoPreloader. */
+.controls {
+  position: absolute;
+  bottom: var(--space-md);
+  right: var(--space-md);
+}
