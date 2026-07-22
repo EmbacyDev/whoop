@@ -16,6 +16,17 @@
 }
 
 /*
+ * Desktop: pull the panel up by one viewport so it slides over the Hero’s
+ * final sticky hold (HERO_COVER_VH) instead of a normal section scroll.
+ */
+@media (min-width: 768px) {
+  .section {
+    margin-top: calc(-100vh + 1px);
+    margin-top: calc(-100dvh + 1px);
+  }
+}
+
+/*
  * Explicit px values here (rather than the shared fluid `--space-*` scale)
  * because Figma's Block 2 uses tighter, flatter spacing than the rest of
  * the page at both of its two breakpoints — title↔subtitle gap 24px mobile
@@ -55,14 +66,15 @@
 }
 
 /*
- * Composed-block entrance: the section fades/lifts in once as it enters the
- * viewport, with the big banner appearing first and the small-banner row
- * following with a subtle stagger — not each card animating on its own.
- * `.group` carries no visual styling of its own, only the `data-visible`
- * flag from `useRevealOnScroll`.
+ * Entrance sequence:
+ * 1. Heading (`.headingEntrance`)
+ * 2. Large banner (armed after heading finishes — see BigBanner `entranceArmed`)
+ * 3–5. Small cards stagger after the large banner finishes
+ *
+ * Cards stay direct flex children so width / aspect-ratio / grid placement
+ * match Figma. Exit / replay for the large banner is unchanged.
  */
-.group .heading,
-.group .bigBannerStage {
+.headingEntrance {
   opacity: 0;
   transform: translateY(24px);
   transition:
@@ -70,20 +82,46 @@
     transform 0.9s var(--ease-standard);
 }
 
-.group .smallBannersStage {
+.headingEntrance[data-visible='true'] {
+  opacity: 1;
+  transform: none;
+}
+
+.smallBanners > * {
   opacity: 0;
   transform: translateY(24px);
   transition:
     opacity 0.9s var(--ease-standard),
     transform 0.9s var(--ease-standard);
+}
+
+.smallBanners > *:nth-child(1) {
   transition-delay: 0.12s;
 }
 
-.group[data-visible='true'] .heading,
-.group[data-visible='true'] .bigBannerStage,
-.group[data-visible='true'] .smallBannersStage {
+.smallBanners > *:nth-child(2) {
+  transition-delay: 0.24s;
+}
+
+.smallBanners > *:nth-child(3) {
+  transition-delay: 0.36s;
+}
+
+.smallBannersStage[data-active='true'] .smallBanners > * {
   opacity: 1;
-  transform: translateY(0);
+  /*
+   * Must be `none`, not translateY(0). A non-none transform on the card
+   * breaks overflow+border-radius clipping, so the dark photo/overlay
+   * paints square corners outside the rounded mask.
+   */
+  transform: none;
+}
+
+/* Card owns the entrance — keep nested photo reveals fully shown. */
+.smallBannersStage .smallBanners > * [data-visible] {
+  opacity: 1;
+  transform: none;
+  transition: none;
 }
 
 @media (min-width: 900px) {

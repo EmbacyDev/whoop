@@ -1,7 +1,6 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Container } from '../ui/Container/Container';
 import { SectionHeading } from '../ui/SectionHeading/SectionHeading';
-import { useRevealOnScroll } from '../../hooks/useRevealOnScroll';
 import { useDailyLoopPin } from '../../hooks/useDailyLoopPin';
 import { usePreloadImages } from '../../hooks/usePreloadImages';
 import { Timeline } from './Timeline/Timeline';
@@ -28,40 +27,91 @@ function hourIndexForScroll(scrollIndex: number): number {
  * Figma "Block 3" — "The Daily Loop".
  *
  * Desktop: heading scrolls in normal flow; timeline/image/copy pin under the
- * fixed header. Scroll tracks continuously, then visually settles to the
- * nearest state without moving the window scroll position.
+ * fixed header. Scroll triggers discrete step cycles (compress → rotate → expand),
+ * not continuous scrubbing.
+ *
+ * Outer section stays layout-stable; heading fades/lifts in when the top
+ * sentinel enters the viewport (no ancestor transform that breaks sticky).
  */
 export function DailyLoop() {
-  const { ref: revealRef, isVisible } = useRevealOnScroll<HTMLDivElement>();
+  const sectionRef = useRef<HTMLElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const [entranceVisible, setEntranceVisible] = useState(false);
   usePreloadImages(IMAGE_URLS);
 
-  const { pinRef, displayIndex, isMoving, enabled } = useDailyLoopPin({
+  // Observe a 1px sentinel at the section top — NOT the tall pin track.
+  // Observing the full section with threshold failed because the pin track
+  // is ~4× viewport tall, so intersection ratio stayed tiny near entry.
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    if (typeof IntersectionObserver === 'undefined') {
+      setEntranceVisible(true);
+      return;
+    }
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setEntranceVisible(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry?.isIntersecting) setEntranceVisible(true);
+      },
+      // Fire as the Daily Loop heading approaches the lower viewport.
+      { threshold: 0, rootMargin: '0px 0px -18% 0px' },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, []);
+
+  const {
+    pinRef,
+    displayIndex,
+    activeIndex,
+    isMoving,
+    enabled,
+    prismZoom,
+    prismRotation,
+    prismPhase,
+    prismRadiusScale,
+    assembleProgress,
+    dissolveProgress,
+  } = useDailyLoopPin({
     stateCount: dailyLoopStates.length,
-    scrollPerStateVh: 0.62,
+    scrollPerStateVh: 2.4,
+    finalHoldVh: 0.25,
+    stepDurationMs: 2300,
   });
 
   const index = enabled ? displayIndex : 0;
   const hourIndex = useMemo(() => hourIndexForScroll(index), [index]);
-  // Keep the time pill on the same continuous index as image/copy (no early snap).
   const nearestIndex = clamp(Math.round(index), 0, dailyLoopStates.length - 1);
   const pillHour = dailyLoopStates[nearestIndex]?.hour ?? dailyLoopStates[0].hour;
   const fractionFromSnap = Math.abs(index - nearestIndex);
-  // Crossing only while actively moving or mid settle ease — never at rest.
   const axisCrossing = enabled && (isMoving || fractionFromSnap > 0.02);
-  // Direct-drive transforms whenever the pin is active so CSS transitions
-  // never compete with the scroll/settle cylinder (avoids the end-of-snap jump).
   const linked = enabled;
 
   return (
-    <section id="daily-loop" className={styles.section} data-pinned={enabled}>
+    <section
+      id="daily-loop"
+      ref={sectionRef}
+      className={styles.section}
+      data-visible={entranceVisible}
+      data-pinned={enabled}
+    >
+      {/* IO target — independent of the tall pin-track height. */}
+      <div ref={sentinelRef} className={styles.entranceSentinel} aria-hidden="true" />
+
       <Container>
-        <div className={styles.reveal} ref={revealRef} data-visible={isVisible}>
-          <SectionHeading
-            className={styles.heading}
-            title="The Daily Loop"
-            subtitle="WHOOP doesn't rewrite your calendar. It acts as a bio-consultant, guiding your energy through a 24-hour cycle."
-          />
-        </div>
+        <SectionHeading
+          className={styles.heading}
+          title="The Daily Loop"
+          subtitle="WHOOP doesn't rewrite your calendar. It acts as a bio-consultant, guiding your energy through a 24-hour cycle."
+        />
       </Container>
 
       <div className={styles.pinTrack} ref={pinRef} data-pinned={enabled}>
@@ -72,6 +122,13 @@ export function DailyLoop() {
                 <LoopCard
                   states={dailyLoopStates}
                   scrollIndex={index}
+                  activeIndex={enabled ? activeIndex : 0}
+                  prismZoom={enabled ? prismZoom : 1}
+                  prismRotation={enabled ? prismRotation : 0}
+                  prismPhase={enabled ? prismPhase : 'rest'}
+                  prismRadiusScale={enabled ? prismRadiusScale : 1}
+                  assembleProgress={enabled ? assembleProgress : 0}
+                  dissolveProgress={enabled ? dissolveProgress : 1}
                   linked={linked}
                   axis={
                     <Timeline

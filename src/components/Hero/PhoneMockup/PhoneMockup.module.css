@@ -1,38 +1,43 @@
 /*
- * Reusable device-frame shell for the Hero's future scroll-driven phone
- * (Figma "Scroll 2" \u2192 "Scroll 6"). Not rendered by Hero yet \u2014 first
- * iteration only ships the static "Scroll 1" state \u2014 but built now so the
- * pinned-scroll interaction can drop screen content in later without
- * rebuilding the frame itself.
+ * CSS device shell — Figma Scroll 6 proportions (317.2×646).
+ * Fully opaque at all times. Immersive Scroll 1 hides the frame by
+ * oversizing + clipping the phone stage, not by fading chrome.
+ *
+ * Bezel ≈ 16/317 → 5.05% (padding % = equal sides).
+ * Outer r ≈ 14% of width (circular → 14% / 6.87%).
+ * Screen r ≈ 11.2% of screen box. DI ≈ 24.2% × 3.3%, top ≈ 2.9%.
  */
 .frame {
   position: relative;
-  width: min(19rem, 100%);
-  aspect-ratio: 750 / 1624;
-  border-radius: 2.6rem;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  border-radius: 14% / 6.87%;
   background: #0b0b0c;
-  border: 2px solid rgb(255 255 255 / 8%);
-  box-shadow: 0 40px 80px -30px rgb(0 0 0 / 55%);
-  padding: 0.5rem;
+  border: none;
+  box-shadow: none;
+  padding: 5.05%;
+  overflow: hidden;
 }
 
 .notch {
   position: absolute;
-  top: 0.9rem;
+  top: 2.9%;
   left: 50%;
   transform: translateX(-50%);
-  width: 34%;
-  height: 1.6rem;
+  width: 24.2%;
+  height: 3.3%;
   background: #0b0b0c;
   border-radius: 999px;
   z-index: 2;
+  pointer-events: none;
 }
 
 .screen {
   position: relative;
   width: 100%;
   height: 100%;
-  border-radius: 2.1rem;
+  border-radius: 11.2%;
   overflow: hidden;
   background: #05252b;
 }

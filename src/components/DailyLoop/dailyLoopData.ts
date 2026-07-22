@@ -21,13 +21,17 @@ function formatHourLabel(hour24: number, minute = 0): string {
   return `${hh}:${mm} ${period}`;
 }
 
-/** Full-day wheel marks (hourly), plus the 06:30 PM stop used by Strain Clearance. */
+/** Full-day wheel marks (hourly), plus the 06:30 PM stop used by Strain Clearance.
+ *  Trailing 12:00 AM closes the day so the label appears below 11:00 PM
+ *  in the final Evening Recap state. */
 export const timelineHours: string[] = (() => {
   const hours: string[] = [];
   for (let h = 0; h < 24; h += 1) {
     hours.push(formatHourLabel(h));
     if (h === 18) hours.push(formatHourLabel(18, 30));
   }
+  // End-of-day midnight (distinct from the opening 12:00 AM at index 0).
+  hours.push(formatHourLabel(0));
   return hours;
 })();
 

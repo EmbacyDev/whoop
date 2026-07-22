@@ -16,14 +16,15 @@
 @media (min-width: 768px) {
   .image {
     /*
-     * Export parks the phone a bit smaller than Figma. ~3% overscale with a
-     * mid-lower focal point restores the Figma handset size and cream band.
+     * Newest desktop export is composition-ready: fill the card image plane
+     * without the old compensatory overscale, keep cover (no stretch), and
+     * bias the crop toward the handset / screen focal point.
      */
-    top: -1.5%;
-    left: -1.5%;
-    width: 103%;
-    height: 103%;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     object-fit: cover;
-    object-position: 50% 40%;
+    object-position: 50% 38%;
   }
 }

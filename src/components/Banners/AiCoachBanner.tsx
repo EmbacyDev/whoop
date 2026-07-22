@@ -4,13 +4,19 @@ import { useRevealOnScroll } from '../../hooks/useRevealOnScroll';
 import shared from './SmallBanner.module.css';
 import styles from './AiCoachBanner.module.css';
 
+type AiCoachBannerProps = {
+  /** When set (desktop stagger), bypass the local one-shot reveal observer. */
+  forceVisible?: boolean;
+};
+
 /** "AI Performance Coach" — photo-only card, no floating UI in the source design. */
-export function AiCoachBanner() {
+export function AiCoachBanner({ forceVisible }: AiCoachBannerProps = {}) {
   const { ref: revealRef, isVisible } = useRevealOnScroll<HTMLDivElement>();
+  const visible = forceVisible || isVisible;
 
   return (
     <div className={[shared.card, shared.cardTight].join(' ')}>
-      <div className={shared.imageReveal} ref={revealRef} data-visible={isVisible}>
+      <div className={shared.imageReveal} ref={revealRef} data-visible={visible}>
         <picture>
           <source media="(min-width: 768px)" srcSet={coachDesktop} />
           <img

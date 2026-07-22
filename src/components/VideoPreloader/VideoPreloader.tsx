@@ -1,4 +1,4 @@
-import { useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import videoPoster from '../../assets/images/video-poster.jpg';
 import { useVideoPreloader } from './useVideoPreloader';
 import styles from './VideoPreloader.module.css';
@@ -25,10 +25,11 @@ export function VideoPreloader({ onFinish }: VideoPreloaderProps) {
   const { hasEnded, isRemoved, finish } = useVideoPreloader();
   const [videoFailed, setVideoFailed] = useState(false);
   const fallbackTimeoutRef = useRef<number | null>(null);
-
-  if (isRemoved) return null;
+  const finishedRef = useRef(false);
 
   const handleFinish = () => {
+    if (finishedRef.current) return;
+    finishedRef.current = true;
     finish();
     onFinish();
   };
@@ -38,6 +39,35 @@ export function VideoPreloader({ onFinish }: VideoPreloaderProps) {
     setVideoFailed(true);
     fallbackTimeoutRef.current = window.setTimeout(handleFinish, PLACEHOLDER_HOLD_MS);
   };
+
+  // Vite SPA fallback can return index.html (200) for a missing intro.mp4.
+  // That often never fires video `error`/`ended`, so probe the asset and
+  // also hard-cap how long the preloader may block the page.
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch(PLACEHOLDER_VIDEO_SRC, { method: 'GET', headers: { Range: 'bytes=0-0' } })
+      .then((res) => {
+        if (cancelled) return;
+        const type = res.headers.get('content-type') ?? '';
+        if (!res.ok || type.includes('text/html') || !type.includes('video')) {
+          handleError();
+        }
+      })
+      .catch(() => {
+        if (!cancelled) handleError();
+      });
+
+    const safety = window.setTimeout(handleFinish, PLACEHOLDER_HOLD_MS + 5000);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(safety);
+    };
+    // handleError/handleFinish are stable for this mount lifecycle
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (isRemoved) return null;
 
   return (
     <div className={[styles.preloader, hasEnded && styles.ended].filter(Boolean).join(' ')} role="presentation">

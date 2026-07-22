@@ -7,10 +7,9 @@ type PhoneMockupProps = {
 };
 
 /**
- * Device-frame shell matching the "iphone" groups in Figma's Scroll 2-6
- * frames. Accepts arbitrary screen content via `children`, so the future
- * pinned-scroll Hero can swap what's rendered inside as the user scrolls
- * without touching the frame markup.
+ * Device-frame shell for the Hero camera pull-back.
+ * Parent sets the outer box; this frame fills it so GSAP can drive size alone.
+ * Always fully opaque — Scroll 1 hides the bezel via scale/clip, not opacity.
  */
 export function PhoneMockup({ children, className }: PhoneMockupProps) {
   return (

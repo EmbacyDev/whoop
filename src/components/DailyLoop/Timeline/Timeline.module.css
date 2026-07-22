@@ -104,31 +104,53 @@
   transform: translateY(-50%);
 }
 
+/*
+ * Dedicated hour-wheel viewport (Figma "time" 113×495, overflow clip).
+ *
+ * Soft fades match Block 3 / 3.2: 16px cream→transparent bands inset from
+ * the viewport edges (≈47→63px top, ≈429→445px bottom of 495). Outer labels
+ * dissolve; the clear mid band stays solid. Active pill is outside this box.
+ */
 .wheelViewport {
+  --wheel-fade-start: 9.5%; /* ≈47px / 495 — Figma fade rect top */
+  --wheel-fade-end: 12.7%; /* ≈63px / 495 — after 16px fade */
+  /* Keep the clear band deep enough that the trailing 12:00 AM
+     (2 steps below 10:00 PM) stays readable in the final state. */
+  --wheel-fade-start-bottom: 91.5%;
+  --wheel-fade-end-bottom: 97%;
   position: absolute;
   top: 50%;
   left: var(--wheel-left);
   z-index: 2;
   width: 7.5rem;
-  height: min(30.9375rem, 160%);
+  height: min(30.9375rem, 160%); /* 495px */
   transform: translateY(-50%);
   perspective: 1200px;
   perspective-origin: 50% 50%;
   overflow: hidden;
-  mask-image: linear-gradient(
-    180deg,
-    transparent 0%,
-    black 18%,
-    black 82%,
-    transparent 100%
-  );
+  /* Separate top + bottom soft masks (not one global wash). */
   -webkit-mask-image: linear-gradient(
     180deg,
     transparent 0%,
-    black 18%,
-    black 82%,
+    transparent var(--wheel-fade-start),
+    #000 var(--wheel-fade-end),
+    #000 var(--wheel-fade-start-bottom),
+    transparent var(--wheel-fade-end-bottom),
     transparent 100%
   );
+  mask-image: linear-gradient(
+    180deg,
+    transparent 0%,
+    transparent var(--wheel-fade-start),
+    #000 var(--wheel-fade-end),
+    #000 var(--wheel-fade-start-bottom),
+    transparent var(--wheel-fade-end-bottom),
+    transparent 100%
+  );
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
 }
 
 .wheel {

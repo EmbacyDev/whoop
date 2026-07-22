@@ -1,64 +1,152 @@
-import type { CSSProperties, ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import type { PrismPhase } from '../../../hooks/useDailyLoopPin';
 import type { DailyLoopState } from '../dailyLoopData';
 import styles from './LoopCard.module.css';
 
 type LoopCardProps = {
   states: DailyLoopState[];
-  /** Continuous 0…n-1 scroll progress — drives image cylinder + copy blend. */
+  /** Continuous index for timeline / copy blend. */
   scrollIndex: number;
+  /** Destination face while a step cycle is playing. */
+  activeIndex: number;
+  /** Prism rotateX in degrees — driven by the step cycle, not scroll scrub. */
+  prismRotation: number;
+  /** 1 = full-size card; lower = assembled hexagonal prism. */
+  prismZoom: number;
+  /** Step-cycle phase — controls which faces are visible. */
+  prismPhase: PrismPhase;
+  /** 1 = normal spacing; lower = tighter assembled prism. */
+  prismRadiusScale: number;
+  /** 0→1 — neighboring faces fade in during compress. */
+  assembleProgress: number;
+  /** 0→1 — non-destination faces fade out during expand (1 = front only). */
+  dissolveProgress: number;
   linked?: boolean;
   axis?: ReactNode;
 };
 
 /**
- * Same angular step language as the timeline wheel (ITEM_ANGLE is per-hour;
- * this is per Daily Loop state — kept restrained for a premium curve).
+ * Hexagonal prism: 60° between faces.
+ * Four state cards occupy four consecutive faces.
  */
-const STATE_ANGLE = 22;
-/** Cylinder radius in px — faces sit on this ring under the shared perspective. */
-const CYLINDER_RADIUS = 306;
+const FACE_ANGLE = 60;
+const FACE_ANGLE_RAD = (FACE_ANGLE * Math.PI) / 180;
+
+/** R = faceHeight / (2 · sin(θ/2)) — panels meet edge-to-edge. */
+function radiusForFaceHeight(faceHeight: number) {
+  return faceHeight / (2 * Math.sin(FACE_ANGLE_RAD / 2));
+}
 
 /**
- * Photo + pill + description. Images share one cylindrical wheel with the
- * timeline: the stage rotates with scrollIndex; each face is fixed on the
- * ring. Active face is front-facing; neighbors curve away. Transforms are
- * continuous (never snapped to `none`).
+ * Hexagonal-prism carousel.
+ *
+ * Each face is an independent rounded card. Zoom/rotation come from the
+ * scripted step cycle (compress → rotate one face → expand) — never scrubbed.
  */
-export function LoopCard({ states, scrollIndex, linked = false, axis }: LoopCardProps) {
-  const wheelStyle = {
-    transform: `translate(-50%, -50%) translateZ(${-CYLINDER_RADIUS}px) rotateX(${(scrollIndex * STATE_ANGLE).toFixed(3)}deg)`,
-  } satisfies CSSProperties;
+export function LoopCard({
+  states,
+  scrollIndex,
+  activeIndex,
+  prismRotation,
+  prismZoom,
+  prismPhase,
+  prismRadiusScale,
+  assembleProgress,
+  dissolveProgress,
+  linked = false,
+  axis,
+}: LoopCardProps) {
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [prismRadius, setPrismRadius] = useState(360);
+  const inPrism = prismPhase === 'compress' || prismPhase === 'rotate';
+  const effectiveRadius = prismRadius * prismRadiusScale;
+  // Compress keeps displayIndex on the departing face; expand uses destination.
+  const frontIndex =
+    prismPhase === 'expand' ? activeIndex : Math.trunc(scrollIndex);
+
+  const faceOpacity = (index: number) => {
+    if (prismPhase === 'rest') {
+      return Math.abs(index - scrollIndex) < 0.5 ? 1 : 0;
+    }
+    if (prismPhase === 'compress') {
+      if (index === frontIndex) return 1;
+      return assembleProgress;
+    }
+    if (prismPhase === 'rotate') {
+      return 1;
+    }
+    // expand — dissolve neighbors; destination card stays visible
+    if (index === activeIndex) return 1;
+    return 1 - dissolveProgress;
+  };
+
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    const update = () => {
+      const height = stage.getBoundingClientRect().height;
+      if (height > 0) setPrismRadius(radiusForFaceHeight(height));
+    };
+
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(stage);
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <div className={styles.card} data-linked={linked}>
-      <div className={styles.imageStage}>
+    <div
+      className={styles.card}
+      data-linked={linked}
+      data-prism={inPrism}
+    >
+      <div className={styles.imageStage} ref={stageRef}>
         {axis}
-        <div className={styles.imageClip}>
-          <div className={styles.imagePerspective}>
-            <div className={styles.imageWheel} style={wheelStyle}>
-              {states.map((state, index) => {
-                const offset = index - scrollIndex;
-                const abs = Math.abs(offset);
-                /* Keep mid-transition readable without smearing three footers. */
-                const opacity = abs >= 1 ? 0 : Math.pow(1 - abs, 1.6);
-                const faceStyle = {
-                  opacity,
-                  transform: `rotateX(${(-index * STATE_ANGLE).toFixed(3)}deg) translateZ(${CYLINDER_RADIUS}px)`,
-                  zIndex: Math.round((1 - Math.min(abs, 1)) * 10),
-                } satisfies CSSProperties;
 
-                return (
+        {/*
+          Perspective host only — no shared border-radius / overflow mask.
+          Each face carries its own rounded corners at every scale.
+        */}
+        <div className={styles.prismSpace}>
+          <div
+            className={styles.prism}
+            style={{
+              transform: [
+                `scale(${prismZoom.toFixed(4)})`,
+                `translateZ(${(-effectiveRadius).toFixed(2)}px)`,
+                `rotateX(${prismRotation.toFixed(3)}deg)`,
+              ].join(' '),
+            }}
+          >
+            {states.map((state, index) => {
+              const opacity = faceOpacity(index);
+              const isFront = opacity >= 0.99;
+              const faceStyle: CSSProperties = {
+                transform: [
+                  `rotateX(${(-index * FACE_ANGLE).toFixed(3)}deg)`,
+                  `translateZ(${effectiveRadius.toFixed(2)}px)`,
+                  'scaleY(1.004)',
+                ].join(' '),
+                opacity,
+              };
+
+              return (
+                <div
+                  key={state.id}
+                  className={styles.face}
+                  aria-hidden={!isFront}
+                  style={faceStyle}
+                >
                   <img
-                    key={state.id}
                     className={styles.image}
                     src={state.image}
-                    alt={abs < 0.5 ? state.imageAlt : ''}
+                    alt={isFront ? state.imageAlt : ''}
                     draggable={false}
-                    style={faceStyle}
                   />
-                );
-              })}
-            </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

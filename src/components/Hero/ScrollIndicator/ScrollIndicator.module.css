@@ -1,4 +1,31 @@
+/*
+ * Figma Desktop Scroll 1 — Button 1175:10030 (108×30):
+ *   padding: 8px 16px; label "scroll ↓" is one text run with 3px tracking.
+ * Only horizontal padding + label↔arrow spacing are tuned here.
+ */
+.root {
+  padding-inline: 1rem; /* 16px */
+  /* Match Figma letter-spacing between the last glyph and ↓ (not --space-2xs). */
+  gap: 0.1875rem; /* 3px */
+}
+
 .arrow {
   display: inline-block;
-  margin-left: 0.35em;
+  margin-left: 0;
+  animation: scrollArrowBob 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes scrollArrowBob {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arrow {
+    animation: none;
+  }
 }

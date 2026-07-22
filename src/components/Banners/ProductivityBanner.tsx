@@ -4,17 +4,23 @@ import { useRevealOnScroll } from '../../hooks/useRevealOnScroll';
 import shared from './SmallBanner.module.css';
 import styles from './ProductivityBanner.module.css';
 
+type ProductivityBannerProps = {
+  /** When set (desktop stagger), bypass the local one-shot reveal observer. */
+  forceVisible?: boolean;
+};
+
 /**
  * "Productivity Windows" — the beige gradient card; the deep-work timer
  * widget is baked into the photo, "Productivity Windows" copy stays real
  * HTML/CSS underneath it.
  */
-export function ProductivityBanner() {
+export function ProductivityBanner({ forceVisible }: ProductivityBannerProps = {}) {
   const { ref: revealRef, isVisible } = useRevealOnScroll<HTMLDivElement>();
+  const visible = forceVisible || isVisible;
 
   return (
     <div className={styles.card}>
-      <div className={styles.imageArea} ref={revealRef} data-visible={isVisible}>
+      <div className={styles.imageArea} ref={revealRef} data-visible={visible}>
         <picture>
           <source media="(min-width: 768px)" srcSet={productivityDesktop} />
           <img

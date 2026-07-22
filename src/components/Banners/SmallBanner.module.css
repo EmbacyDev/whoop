@@ -10,6 +10,8 @@
   justify-content: flex-end;
   overflow: hidden;
   border-radius: var(--radius-banner-mobile);
+  /* Hard clip to the same radius — survives mid-animation transforms. */
+  clip-path: inset(0 round var(--radius-banner-mobile));
   aspect-ratio: 443 / 581;
   padding: var(--space-md);
   isolation: isolate;
@@ -25,6 +27,7 @@
 @media (min-width: 768px) {
   .card {
     border-radius: var(--radius-lg);
+    clip-path: inset(0 round var(--radius-lg));
     padding: 2.25rem; /* 36px — Figma "sm banner 1" / "sm banner 2" desktop padding */
   }
 
@@ -46,6 +49,7 @@
   inset: 0;
   z-index: -2;
   overflow: hidden;
+  border-radius: inherit;
   opacity: 0;
   transform: translateY(20px);
   transition:
@@ -55,7 +59,15 @@
 
 .imageReveal[data-visible='true'] {
   opacity: 1;
-  transform: translateY(0);
+  /* `none` — not translateY(0) — so overflow/radius clipping stays intact. */
+  transform: none;
+}
+
+/* Fill the reveal so <picture> is not height:0 (breaks parallax tracking). */
+.imageReveal picture {
+  position: absolute;
+  inset: 0;
+  display: block;
 }
 
 /*
@@ -86,6 +98,7 @@
   position: absolute;
   inset: 0;
   z-index: -1;
+  border-radius: inherit;
   background: linear-gradient(180deg, rgb(0 0 0 / 0%) 60%, rgb(42 36 30 / 78%) 100%);
 }
 

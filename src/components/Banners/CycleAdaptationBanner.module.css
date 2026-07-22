@@ -1,3 +1,48 @@
 .card {
   composes: card from './SmallBanner.module.css';
 }
+
+/* Desktop MP4 — full-bleed inside the rounded card clip. */
+.desktopVideo {
+  display: none;
+}
+
+.mobileImage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  pointer-events: none;
+}
+
+@media (min-width: 768px) {
+  .desktopVideo {
+    display: block;
+    position: absolute;
+    left: 0;
+    width: 100%;
+    /*
+     * Source is 442×620 — taller than the 443/581 card at the same width
+     * (~107% of card height). Size to that intrinsic frame so scale matches
+     * “width-fitted” cover, then slide with `top` (object-position is a no-op
+     * here: cover barely crops, so Y shifts were invisible).
+     */
+    height: auto;
+    aspect-ratio: 442 / 620;
+    object-fit: cover;
+    object-position: center center;
+    /*
+     * Align toward the bottom of the clip so the AI Assessment card reads.
+     * -6.5% ≈ full travel of the extra ~7% height; small extra for parallax.
+     */
+    top: -6.5%;
+    pointer-events: none;
+    will-change: transform;
+  }
+
+  .mobileImage {
+    display: none;
+  }
+}

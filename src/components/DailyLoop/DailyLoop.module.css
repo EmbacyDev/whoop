@@ -1,9 +1,30 @@
 .section {
   --daily-loop-header-height: clamp(3.5rem, 2.5vw + 3rem, 4.3rem);
+  position: relative;
   background: var(--color-cream);
   /* Figma Block 3: pt 100 / pb 140 at the design breakpoint */
   padding-block: 6.25rem 8.75rem;
   overflow: clip;
+}
+
+.entranceSentinel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+  opacity: 0;
+}
+
+/* Safe fallback — never leave content permanently hidden. */
+@media (prefers-reduced-motion: reduce) {
+  .heading,
+  .pinTrack {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
 }
 
 .section[data-pinned='true'] {
@@ -14,29 +35,36 @@
   /* Figma: 16px title↔subtitle, 40px heading↔content + 30px desktop nudge */
   gap: 1rem;
   margin-bottom: calc(2.5rem + 30px);
-}
-
-.reveal {
   opacity: 0;
-  transform: translateY(24px);
+  transform: translateY(20px);
   transition:
     opacity 0.9s var(--ease-standard),
     transform 0.9s var(--ease-standard);
 }
 
-.reveal[data-visible='true'] {
+.section[data-visible='true'] .heading {
   opacity: 1;
   transform: translateY(0);
 }
 
 .pinTrack {
   position: relative;
+  opacity: 0;
+  transition: opacity 0.8s var(--ease-standard) 0.15s;
+}
+
+.section[data-visible='true'] .pinTrack {
+  opacity: 1;
 }
 
 .pinTrack[data-pinned='true'] {
   --daily-loop-segments: 3;
   --daily-loop-scroll-vh: 0.62;
-  height: calc(100vh + (100vh * var(--daily-loop-segments) * var(--daily-loop-scroll-vh)));
+  --daily-loop-extra-vh: 0;
+  height: calc(
+    100vh +
+      (100vh * ((var(--daily-loop-segments) * var(--daily-loop-scroll-vh)) + var(--daily-loop-extra-vh)))
+  );
 }
 
 .sticky {

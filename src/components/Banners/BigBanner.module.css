@@ -1,23 +1,16 @@
+/*
+ * Whole-banner entrance (same motion/timing as before the MP4 swap):
+ * opacity + translateY over 0.9s. Toggled via `data-visible` in lockstep
+ * with the internal video/countdown — not a one-shot early section reveal.
+ */
 .banner {
   position: relative;
   overflow: hidden;
   border-radius: var(--radius-banner-mobile);
   aspect-ratio: 355 / 600;
   isolation: isolate;
-}
-
-/*
- * Entrance wrapper for the banner photo: fades + translates in the first
- * time the banner enters the viewport (toggled via `data-visible`, set by
- * `useRevealOnScroll`). Clips the oversized `.image` so the continuous
- * parallax offset (`useParallax`) never reveals an edge. The Sharpness card
- * is baked into the photo itself.
- */
-.imageReveal {
-  position: absolute;
-  inset: 0;
-  z-index: -2;
-  overflow: hidden;
+  container-type: size;
+  container-name: big-banner;
   opacity: 0;
   transform: translateY(24px);
   transition:
@@ -25,20 +18,31 @@
     transform 0.9s var(--ease-standard);
 }
 
-.imageReveal[data-visible='true'] {
+.banner[data-visible='true'] {
   opacity: 1;
   transform: translateY(0);
 }
 
 /*
- * The bleed-inclusive source photos now carry their own real extra content
- * top/bottom (baked in at export), so this only needs a buffer matched to
- * that bleed plus a small safety margin for `useParallax` (strength 14px) —
- * no more upscaled "zoom" than the source photo actually contains. The
- * tightest point is right at the mobile→desktop aspect-ratio switch
- * (768px), where the card is shortest relative to its own height.
+ * Media clip only — entrance lives on `.banner` so text + overlay reveal
+ * with the photo. Clips oversized mobile parallax so it never shows an edge.
  */
-.image {
+.imageReveal {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  overflow: hidden;
+}
+
+/* Desktop MP4 — hidden below the desktop breakpoint. */
+.desktopVideo {
+  display: none;
+}
+
+/*
+ * Mobile still photo. Bleed buffer matched to the export + useParallax (14px).
+ */
+.mobileImage {
   position: absolute;
   top: -5%;
   left: 0;
@@ -46,6 +50,16 @@
   height: 110%;
   object-fit: cover;
   will-change: transform;
+}
+
+/*
+ * Sharp HTML percentage over the video ring hole.
+ * Geometry from the exported MP4 frame (2688×1260) mapped through object-fit:
+ * cover into the 1344×580 banner box — not the static Figma still, which
+ * places the card differently.
+ */
+.ringMetric {
+  display: none;
 }
 
 .overlay {
@@ -95,13 +109,78 @@
     aspect-ratio: 1344 / 580;
   }
 
-  .overlay {
-    background: linear-gradient(93deg, rgb(0 0 0 / 0%) 45%, rgb(0 0 0 / 45%) 75%);
+  .desktopVideo {
+    display: block;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center center;
+    pointer-events: none;
   }
 
-  .metric {
-    top: var(--space-md);
-    left: var(--gutter);
+  .mobileImage {
+    display: none;
+  }
+
+  /*
+   * Ring bbox on frame0 ≈ 516,264–768,513 in 2688×1260.
+   * Cover scale = 0.5 → displayed 1344×630, y-offset -25 into 580-tall box.
+   */
+  /* Positions the metric group in the ring; does not own digit/% alignment. */
+  .ringMetric {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    z-index: 2;
+    left: 19.2%;
+    top: 18.45%;
+    width: 9.375%;
+    height: 21.72%;
+    box-sizing: border-box;
+    color: var(--color-cream);
+    pointer-events: none;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: geometricPrecision;
+  }
+
+  /*
+   * Figma Metric Container (1175:10240): inline pair, gap 2px, items-start
+   * so "%" top edge meets the digit tops — not baseline or vertical center.
+   */
+  .ringValue {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 0.15cqw; /* 2px @ 1344 */
+    line-height: 1;
+  }
+
+  .ringValueNumber {
+    font-family: var(--font-body);
+    font-weight: 400;
+    /* 39.661 / 1344 ≈ 2.951cqw */
+    font-size: 2.951cqw;
+    font-size: max(1.25rem, 2.951cqw);
+    letter-spacing: -0.0134em;
+    line-height: 1;
+    opacity: 0.98;
+    text-box: trim-both cap alphabetic;
+  }
+
+  .ringValuePercent {
+    font-family: var(--font-body);
+    font-weight: 500;
+    /* 17.352 / 1344 ≈ 1.291cqw */
+    font-size: 1.291cqw;
+    font-size: max(0.65rem, 1.291cqw);
+    line-height: 1;
+    text-box: trim-both cap alphabetic;
+  }
+
+  .overlay {
+    background: linear-gradient(93deg, rgb(0 0 0 / 0%) 45%, rgb(0 0 0 / 45%) 75%);
   }
 
   .text {

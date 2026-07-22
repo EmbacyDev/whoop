@@ -1,25 +1,165 @@
-.hero {
-  /* Sticky so Block 2 can rise over the hero (WHOOP-style panel overlap). */
+/* Tall track: ScrollTrigger pins `.heroSticky`; sticky is the no-JS fallback. */
+.heroTrack {
+  position: relative;
+  z-index: 0;
+  height: var(--hero-track-vh, 100vh);
+  --hero-header-height: clamp(3.5rem, 2.5vw + 3rem, 4.3rem);
+}
+
+.heroSticky {
   position: sticky;
   top: 0;
-  z-index: 0;
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
-  /* Same token as the fixed header — used for true vertical centering below it. */
-  --hero-header-height: clamp(3.5rem, 2.5vw + 3rem, 4.3rem);
+}
+
+.stage {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  background: #e4d7c6;
 }
 
 .background {
   position: absolute;
   inset: 0;
-  z-index: -1;
+  z-index: 0;
 }
 
-.backgroundImage {
+.bgBeige,
+.bgFinal {
+  position: absolute;
+  inset: 0;
+}
+
+.bgBeige {
+  z-index: 1;
+  background: #e4d7c6;
+}
+
+/* Figma Scroll 6: from #e4d7c6 @ 26% → #f9f3ec */
+.bgFinal {
+  z-index: 1;
+  background: linear-gradient(180deg, #e4d7c6 26%, #f9f3ec 100%);
+  opacity: 0;
+}
+
+/* Clips phone chrome that overflows the stage. */
+.phoneStage {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/*
+ * Phone box matches iphone.png bounds. overflow + outer radius clip screen
+ * media that would otherwise peek through the PNG’s transparent outer corners.
+ * PNG top corners are deeper than a simple 12.7% round-rect (~20% inset on the
+ * top edge) — use a stronger radius so the clip sits inside the silhouette.
+ *
+ * iphone.png also has ~2px transparent bottom pad + soft outer alpha. A solid
+ * #05252b on this box painted through that fringe as a hairline under the
+ * device — keep the box transparent and clip a couple CSS px inside the pad.
+ * Opaque fill lives on `.phoneScreen` (sized inside the bezel at peek).
+ */
+.phone {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  overflow: hidden;
+  border-radius: 18% / 9%;
+  background: transparent;
+  /* Clip PNG soft-edge / transparent pad so screen fill cannot bleed under the silhouette. */
+  clip-path: inset(0 1px 2px 1px round 18% / 9%);
+  will-change: width, height, top, left;
+  pointer-events: none;
+}
+
+/*
+ * Screen media under iphone.png. Through Scroll 1→5 GSAP keeps this box at
+ * viewport full-bleed in phone-local coords (window into Scroll 1 framing).
+ * At peek it fills the phone box so the display hole is covered below the fold.
+ * Opaque fill blocks cream if the video hasn’t painted yet.
+ */
+.phoneScreen {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 1;
+  overflow: hidden;
+  border-radius: 0;
+  background: #05252b;
+  will-change: left, top, width, height;
+  pointer-events: none;
+}
+
+.phoneScreen video {
+  /* Absolute + 1px overscan kills sub-pixel gaps that flash `.phoneScreen` fill. */
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  display: block;
+  width: calc(100% + 2px);
+  height: calc(100% + 2px);
+  object-fit: cover;
+  object-position: center center;
+  transform-origin: center center;
+  pointer-events: none;
+}
+
+/* Frame fades in over screen media; Dynamic Island is part of the PNG. */
+.phoneChrome {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  opacity: 0;
+}
+
+.phoneDevice {
+  position: absolute;
+  inset: 0;
+  display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: fill;
+  pointer-events: none;
+}
+
+.copyStack {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/*
+ * Scroll 1 title + Scroll pill stay in a viewport-tall layer even when the
+ * sticky stage is taller (peek phone). Keeps HEAD top/bottom math intact.
+ */
+.copyIntro {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100vh;
+  height: 100dvh;
+  will-change: opacity, transform;
+}
+
+.copySharpness,
+.copyFinal {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  will-change: opacity, transform;
+}
+
+.copyIntro .indicator {
+  pointer-events: auto;
 }
 
 /*
@@ -47,6 +187,22 @@
     transform var(--duration-slow) var(--ease-standard);
 }
 
+/* Figma Desktop/Heading 2 — 32: Reckless Neue, centered, ink on beige. */
+.headingSecondary {
+  composes: displayHeading from '../../styles/typography.module.css';
+  position: absolute;
+  left: 50%;
+  top: calc(var(--hero-header-height) + 4.5rem);
+  width: min(56rem, calc(100% - 2 * var(--gutter)));
+  margin: 0;
+  transform: translateX(-50%);
+  text-align: center;
+  font-size: clamp(1.5rem, 1.25rem + 0.8vw, 2rem); /* 24 → 32 */
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+}
+
 /*
  * Figma Scroll 1 (768 frame): scroll control sits ~190px from the bottom
  * (pb-[190px]), below the centered title without shifting its center.
@@ -72,9 +228,23 @@
   transform: translate(-50%, 0);
 }
 
-/* Reserved anchor point for the future pinned-scroll phone sequence
-   (Figma "Scroll 2" \u2192 "Scroll 6" / PhoneMockup). Rendering nothing here
-   yet keeps this iteration to the static "Scroll 1" state only. */
-.stageSlot {
-  display: none;
+@media (max-width: 767px) {
+  .heroTrack {
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  .phone {
+    width: min(70vw, 17rem);
+    height: auto;
+    aspect-ratio: 317 / 646;
+    left: 50%;
+    top: 58%;
+    transform: translate(-50%, -50%);
+  }
+
+  .headingSecondary {
+    top: calc(var(--hero-header-height) + 2.5rem);
+    font-size: 1.375rem;
+  }
 }

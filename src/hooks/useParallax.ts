@@ -15,7 +15,19 @@ export function useParallax<T extends HTMLElement>(strength = 16) {
     if (!el) return;
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
 
-    const track = el.parentElement ?? el;
+    // Prefer the overflow-clipped photo stage over a collapsed <picture> wrapper.
+    let track: HTMLElement = el.parentElement ?? el;
+    for (
+      let node: HTMLElement | null = el.parentElement;
+      node;
+      node = node.parentElement
+    ) {
+      const style = window.getComputedStyle(node);
+      if (style.overflow === 'hidden' || style.overflow === 'clip') {
+        track = node;
+        break;
+      }
+    }
     let ticking = false;
     let inView = false;
 

@@ -9,6 +9,9 @@ export default defineConfig({
   base: './',
   plugins: [react()],
   resolve: {
+    // Prevent duplicate React copies when multiple Vite processes share/corrupt
+    // the prebundle cache (classic "Invalid hook call" / blank cream page).
+    dedupe: ['react', 'react-dom'],
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },

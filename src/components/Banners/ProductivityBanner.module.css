@@ -6,9 +6,9 @@
 
 /*
  * Figma sm banner 1 (1175:10254): widget 216×208 with pt 130 on a 443×581
- * card. Desktop photo embeds that widget on beige — size the bitmap to the
- * card width (widget ≈ 48.5% of export width) and pull it up so the widget
- * top lands on Figma’s pt 130.
+ * card. Desktop photo embeds that widget on beige — the image must fill the
+ * whole imageArea so its baked gradient meets the text below with no gap
+ * for the card CSS gradient to show through as a horizontal strip.
  */
 .imageArea {
   position: relative;
@@ -28,7 +28,18 @@
   transform: translateY(0);
 }
 
+.imageArea picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 @media (min-width: 768px) {
+  .card {
+    /* Flush image→text junction; spacing below the widget lives in the photo. */
+    gap: 0;
+  }
+
   .imageArea {
     margin: -2.25rem -2.25rem 0;
   }
@@ -45,19 +56,19 @@
 
 @media (min-width: 768px) {
   .image {
-    /* In-flow sizing — avoids absolute inset stretching the bitmap. */
-    position: relative;
-    inset: unset;
-    top: auto;
-    right: auto;
-    bottom: auto;
-    left: auto;
-    display: block;
+    /*
+     * Fill the imageArea completely (no in-flow height:auto + negative margin,
+     * which left an empty band of card gradient above the text). Cover + a
+     * slightly elevated focal point keeps the widget near Figma’s pt 130
+     * without exposing a mismatched strip at the bottom edge.
+     */
+    position: absolute;
+    inset: 0;
     width: 100%;
-    height: auto;
-    margin-top: -8%;
-    object-fit: contain;
-    object-position: center top;
+    height: 100%;
+    margin: 0;
+    object-fit: cover;
+    object-position: center 32%;
   }
 }
 

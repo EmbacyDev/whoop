@@ -60,12 +60,14 @@ export function Timeline({ hourIndex, activeHour, axisCrossing = false, linked =
               const distance = Math.abs(index - hourIndex);
               return (
                 <span
-                  key={hour}
+                  key={`${hour}-${index}`}
                   className={styles.hourLabel}
                   data-active={index === nearestIndex}
                   style={{
                     transform: `rotateX(${-index * ITEM_ANGLE}deg) translateZ(var(--wheel-radius))`,
-                    opacity: Math.max(0, 1 - distance * 0.22),
+                    /* Softer falloff so 11:00 PM + trailing 12:00 AM stay
+                       readable below the final 10:00 PM stop. */
+                    opacity: Math.max(0, 1 - distance * 0.12),
                   }}
                 >
                   {hour}
