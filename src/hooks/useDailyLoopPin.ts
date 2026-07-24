@@ -264,12 +264,6 @@ export function useDailyLoopPin({
       return rect.top <= 0 && rect.bottom >= window.innerHeight - 1;
     };
 
-    const reservePinVhForStep = (to: number) => {
-      const reserve =
-        to === lastIndex ? scrollPerStateVh * 1.75 : scrollPerStateVh * 1.05;
-      applyExtraPinVh(reserve);
-    };
-
     const settleAt = (index: number) => {
       committedRef.current = index;
       displayIndexRef.current = index;
@@ -296,7 +290,6 @@ export function useDailyLoopPin({
       animatingRef.current = true;
       setIsMoving(true);
       setActiveIndex(to);
-      reservePinVhForStep(to);
 
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       if (reduced) {

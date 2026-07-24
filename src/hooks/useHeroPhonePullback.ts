@@ -24,6 +24,7 @@ import {
   phoneUiSharpnessRingScrubTime,
   setPhoneUiFinal,
   setPhoneUiInitial,
+  PHONE_UI_MORPH_REV,
 } from '../components/Hero/PhoneHomeUI/phoneHomeUiMotion';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -377,9 +378,16 @@ export function useHeroPhonePullback({
       const coverDuration = HERO_COVER_VH / HERO_PHONE_SEGMENT_VH;
       const peekIndex = HERO_PHONE_KEYFRAMES.findIndex((k) => k.id === 'scroll-6-peek');
       const peekTweenStart = Math.max(peekIndex - 1, 0);
-      const afterPeek = peekIndex;
-      const pinDistance = () => heroPinVh(false) * window.innerHeight;
-      const phoneUiEnd = afterPeek + holdDuration;
+      const baseAfterPeek = peekIndex;
+      const phoneUiEnd = baseAfterPeek + holdDuration;
+      const phoneExitStart = phoneUiEnd;
+      const afterPeek = phoneExitStart + 1;
+      const phoneHoldOffset = afterPeek - baseAfterPeek;
+      const phoneSegmentStart = (segmentIndex: number) =>
+        segmentIndex === peekTweenStart ? phoneExitStart : segmentIndex;
+      const pinDistance = () =>
+        (heroPinVh(false) + phoneHoldOffset * HERO_PHONE_SEGMENT_VH) *
+        window.innerHeight;
       const phoneUiScrubDuration = phoneUiEnd - PHONE_UI_START;
 
       ctx = gsap.context(() => {
@@ -409,7 +417,7 @@ export function useHeroPhonePullback({
               immediateRender: false,
               ...sizeVars(HERO_PHONE_KEYFRAMES[i]),
             },
-            i - 1,
+            phoneSegmentStart(i - 1),
           );
         }
 
@@ -432,7 +440,7 @@ export function useHeroPhonePullback({
               immediateRender: false,
               ...imageBoxVarsDesktop(HERO_PHONE_KEYFRAMES[i]),
             },
-            i - 1,
+            phoneSegmentStart(i - 1),
           );
         }
 
@@ -555,15 +563,21 @@ export function useHeroPhonePullback({
       );
       const dropEnd = sharpnessRingStart + 1;
       const meetHoldEnd = dropEnd + MEET_SHARPNESS_HOLD;
-      const phoneSegmentStart = (segmentIndex: number) => {
+      const basePhoneSegmentStart = (segmentIndex: number) => {
         if (segmentIndex === PHONE_DROP_SEGMENT) return sharpnessRingStart;
         if (segmentIndex === PHONE_PEEK_SEGMENT) return meetHoldEnd;
         return segmentIndex;
       };
-      const peekTweenStart = phoneSegmentStart(PHONE_PEEK_SEGMENT);
-      const afterPeek = meetHoldEnd + 1;
+      const peekTweenStart = basePhoneSegmentStart(PHONE_PEEK_SEGMENT);
+      const baseAfterPeek = meetHoldEnd + 1;
+      const phoneUiEnd = baseAfterPeek + holdDuration;
+      const phoneExitStart = phoneUiEnd;
+      const phoneSegmentStart = (segmentIndex: number) =>
+        segmentIndex === PHONE_PEEK_SEGMENT
+          ? phoneExitStart
+          : basePhoneSegmentStart(segmentIndex);
+      const afterPeek = phoneExitStart + 1;
       const phoneDropOffset = afterPeek - peekIndex;
-      const phoneUiEnd = afterPeek + holdDuration;
       const phoneUiScrubDuration = phoneUiEnd - PHONE_UI_START;
       const pinDistance = () =>
         (heroPinVh(true) + phoneDropOffset * HERO_PHONE_SEGMENT_VH) * window.innerHeight;
@@ -776,7 +790,7 @@ export function useHeroPhonePullback({
       clearScrubLayout();
       delete track.dataset.heroFrame;
     };
-  }, [enabled, minWidth]);
+  }, [enabled, minWidth, PHONE_UI_MORPH_REV]);
 
   return {
     trackRef,

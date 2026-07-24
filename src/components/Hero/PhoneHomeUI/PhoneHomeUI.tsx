@@ -16,6 +16,37 @@ const RING_VIEW = 100;
 const STROKE = 10;
 const RADIUS = (RING_VIEW - STROKE) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+const SHARPNESS_PATH_LENGTH = 100;
+
+/**
+ * Nine cubic segments keep the same topology as the rounded-card path used by
+ * the phase-3 morph. Starting at 12 o'clock preserves the current Sharpness
+ * progress pose without rotating or stretching the SVG.
+ */
+function createSharpnessRingPath() {
+  const segments = 9;
+  const step = (Math.PI * 2) / segments;
+  const alpha = (4 / 3) * Math.tan(step / 4);
+  const parts = [`M ${RING_VIEW / 2} ${RING_VIEW / 2 - RADIUS}`];
+
+  for (let i = 0; i < segments; i++) {
+    const a0 = -Math.PI / 2 + i * step;
+    const a1 = a0 + step;
+    const x0 = RING_VIEW / 2 + RADIUS * Math.cos(a0);
+    const y0 = RING_VIEW / 2 + RADIUS * Math.sin(a0);
+    const x1 = RING_VIEW / 2 + RADIUS * Math.cos(a1);
+    const y1 = RING_VIEW / 2 + RADIUS * Math.sin(a1);
+    const c1x = x0 - alpha * RADIUS * Math.sin(a0);
+    const c1y = y0 + alpha * RADIUS * Math.cos(a0);
+    const c2x = x1 + alpha * RADIUS * Math.sin(a1);
+    const c2y = y1 - alpha * RADIUS * Math.cos(a1);
+    parts.push(`C ${c1x} ${c1y} ${c2x} ${c2y} ${x1} ${y1}`);
+  }
+
+  return parts.join(' ');
+}
+
+const SHARPNESS_RING_PATH = createSharpnessRingPath();
 
 /** Calendar viz — concentric tracks sized to match Figma screen 3 (1330:856). */
 const CAL_VIEW = 100;
@@ -72,10 +103,11 @@ export const PhoneHomeUI = forwardRef<PhoneHomeUIHandle>(function PhoneHomeUI(_,
   const sharpnessValueRef = useRef<HTMLSpanElement>(null);
   const sharpnessValueWrapRef = useRef<HTMLDivElement>(null);
   const sharpnessLabelRef = useRef<HTMLParagraphElement>(null);
-  const sharpnessProgressRef = useRef<SVGCircleElement>(null);
+  const sharpnessProgressRef = useRef<SVGPathElement>(null);
   const sharpnessTrackRef = useRef<SVGCircleElement>(null);
   const sharpnessRingWrapRef = useRef<HTMLDivElement>(null);
   const calendarRootRef = useRef<HTMLDivElement>(null);
+  const calendarFrameRef = useRef<HTMLDivElement>(null);
   const calLayerRefs = useRef<(SVGCircleElement | null)[]>([]);
   const calGreenRef = useRef<SVGCircleElement>(null);
   const recommendRootRef = useRef<HTMLDivElement>(null);
@@ -91,6 +123,7 @@ export const PhoneHomeUI = forwardRef<PhoneHomeUIHandle>(function PhoneHomeUI(_,
       const sharpnessTrack = sharpnessTrackRef.current;
       const sharpnessRingWrap = sharpnessRingWrapRef.current;
       const calendarRoot = calendarRootRef.current;
+      const calendarFrame = calendarFrameRef.current;
       const calGreen = calGreenRef.current;
       const recommendRoot = recommendRootRef.current;
       if (
@@ -103,6 +136,7 @@ export const PhoneHomeUI = forwardRef<PhoneHomeUIHandle>(function PhoneHomeUI(_,
         !sharpnessTrack ||
         !sharpnessRingWrap ||
         !calendarRoot ||
+        !calendarFrame ||
         !calGreen ||
         !recommendRoot
       ) {
@@ -139,8 +173,9 @@ export const PhoneHomeUI = forwardRef<PhoneHomeUIHandle>(function PhoneHomeUI(_,
         sharpnessProgress,
         sharpnessTrack,
         sharpnessRingWrap,
-        sharpnessCircumference: CIRCUMFERENCE,
+        sharpnessCircumference: SHARPNESS_PATH_LENGTH,
         calendarRoot,
+        calendarFrame,
         calLayers,
         calGreen,
         calGreenCircumference: CAL_GREEN_CIRC,
@@ -222,6 +257,7 @@ export const PhoneHomeUI = forwardRef<PhoneHomeUIHandle>(function PhoneHomeUI(_,
       {/* Figma 1330:1129 — calendar card (fades behind morphing Sharpness arc). */}
       <div className={styles.calendarAnchor}>
         <div className={styles.calendarCard} ref={calendarRootRef} data-phone-ui="calendar">
+          <div className={styles.calendarFrame} ref={calendarFrameRef} />
           <div className={styles.calHeader}>
             <div className={styles.workBadge}>
               <span className={styles.workLabel}>work</span>
@@ -298,7 +334,7 @@ export const PhoneHomeUI = forwardRef<PhoneHomeUIHandle>(function PhoneHomeUI(_,
         >
           <div className={styles.ringWrap} ref={sharpnessRingWrapRef}>
             <svg
-              className={styles.ringSvg}
+              className={`${styles.ringSvg} ${styles.sharpnessRingSvg}`}
               viewBox={`0 0 ${RING_VIEW} ${RING_VIEW}`}
               role="presentation"
             >
@@ -317,16 +353,17 @@ export const PhoneHomeUI = forwardRef<PhoneHomeUIHandle>(function PhoneHomeUI(_,
                 r={RADIUS}
                 strokeWidth={STROKE}
               />
-              <circle
+              <path
                 className={styles.progress}
                 ref={sharpnessProgressRef}
-                cx={RING_VIEW / 2}
-                cy={RING_VIEW / 2}
-                r={RADIUS}
+                d={SHARPNESS_RING_PATH}
+                pathLength={SHARPNESS_PATH_LENGTH}
                 strokeWidth={STROKE}
                 stroke={PHONE_UI_SHARPNESS.color}
-                strokeDasharray={CIRCUMFERENCE}
-                strokeDashoffset={CIRCUMFERENCE * (1 - PHONE_UI_SHARPNESS.from / 100)}
+                strokeDasharray={SHARPNESS_PATH_LENGTH}
+                strokeDashoffset={
+                  SHARPNESS_PATH_LENGTH * (1 - PHONE_UI_SHARPNESS.from / 100)
+                }
               />
             </svg>
             <div className={styles.value} ref={sharpnessValueWrapRef}>

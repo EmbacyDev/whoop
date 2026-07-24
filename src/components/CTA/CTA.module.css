@@ -1,21 +1,13 @@
 .section {
   background: var(--color-cream);
-  padding-block: var(--space-2xl);
+  padding-block: clamp(2.5rem, 3.5vw + 1.25rem, 4.5rem) var(--space-2xl);
+  overflow: clip;
 }
 
-/* Composed-block entrance: the whole panel fades/lifts in once, as the
-   section enters the viewport. */
+/* GSAP scales and settles the composed block with scroll progress. */
 .reveal {
-  opacity: 0;
-  transform: translateY(24px);
-  transition:
-    opacity 0.9s var(--ease-standard),
-    transform 0.9s var(--ease-standard);
-}
-
-.reveal[data-visible='true'] {
-  opacity: 1;
-  transform: translateY(0);
+  transform-origin: center center;
+  will-change: transform;
 }
 
 .panel {

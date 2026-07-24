@@ -21,7 +21,7 @@ export default function App() {
         <Hero revealed={introFinished} />
         <Banners />
         <DailyLoop />
-        <CTA />
+        <CTA revealed={introFinished} />
       </main>
 
       <Footer />

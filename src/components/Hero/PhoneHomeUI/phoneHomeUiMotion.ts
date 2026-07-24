@@ -28,54 +28,130 @@ export const PHONE_UI_PHASE12_WEIGHT = PHONE_UI_PHASE1_WEIGHT + PHONE_UI_PHASE2_
 export const PHONE_UI_TOTAL_WEIGHT = PHONE_UI_PHASE12_WEIGHT;
 
 /**
- * Phase-3 fractions of the Figma screen-3 cohort (get_motion_context 1330:856).
- * Soft continuous morph: Sharpness opens → calendar card → layers → green → recommend.
+ * Phase-3 — Sharpness → calendar (visible continuous morph, not a fade).
+ * The colored progress stroke stays fully opaque while its circular geometry
+ * rotates, opens, grows, and hands off to the card's main internal arc.
  */
 export const PHONE_UI_CALENDAR = {
-  /** Sharpness continues growing / drifting toward the card. */
-  sharpContinueStart: 0.008,
-  sharpContinueEnd: 0.184,
-  /** End scale relative to the settled Sharpness endScale (1.5 → ~1.9 in Figma). */
-  sharpEndScaleMul: 1.9 / 1.5,
-  sharpEndYPx: 28,
-  /** Figma 1330:898 — ring opens into a bottom arc (flatten + drift down). */
-  arcOpenStart: 0.081,
-  arcOpenEnd: 0.487,
-  arcEndYPx: 186,
-  arcFlatScaleX: 2.35,
-  arcFlatScaleY: 0.4,
-  /** Visible stroke grows slightly as the ring opens. */
-  arcPctEnd: 74,
-  valueFadeStart: 0.091,
-  valueFadeEnd: 0.124,
-  trackFadeStart: 0.054,
-  trackFadeEnd: 0.13,
-  labelFadeStart: 0.081,
-  labelFadeEnd: 0.184,
-  /** Filled Sharpness arc exits as card viz takes over. */
-  sharpExitStart: 0.53,
-  sharpExitEnd: 0.586,
-  cardStart: 0.453,
-  cardEnd: 0.703,
-  cardFromScale: 0.9,
+  /** Recording 0.65s → 1.29s: restrained ring expansion before collapse. */
+  sharpContinueStart: 0.13,
+  sharpContinueEnd: 0.26,
+  sharpPeakScaleMul: 1.72 / 1.5,
+  sharpEndYPx: 18,
+  /** Recording 1.29s → 2.37s: ring closes to a point and clears. */
+  arcCollapseStart: 0.26,
+  arcCollapseEnd: 0.46,
+  arcClearEnd: 0.49,
+  /** Recording 2.59s → 3.23s: point rebuilds into the card's main arc. */
+  arcRebuildStart: 0.51,
+  arcRebuildEnd: 0.66,
+  arcEndScaleMul: 2.35 / 1.5,
+  /** Settle onto the calendar's main internal arc. */
+  arcEndYPx: 150,
+  /** Rebuilt stroke becomes the broad top arc from the reference. */
+  arcPctEnd: 46,
+  arcColorStart: 0.62,
+  arcColorEnd: 0.7,
+  valueFadeStart: 0.24,
+  valueFadeEnd: 0.31,
+  trackFadeStart: 0.24,
+  trackFadeEnd: 0.32,
+  labelFadeStart: 0.24,
+  labelFadeEnd: 0.33,
+  /** Instant handoff after the morph aligns with the gray outer track. */
+  sharpExitStart: 0.7,
+  sharpExitEnd: 0.71,
+  /** Card emerges underneath the rebuilt arc before the arc turns gray. */
+  cardStart: 0.48,
+  cardEnd: 0.68,
+  frameStart: 0.5,
+  frameEnd: 0.66,
+  cardFromScale: 0.92,
   cardToScale: 1,
-  cardFromYPx: -18,
+  cardFromYPx: 260,
   cardToYPx: 85,
-  layer1Start: 0.535,
-  layer1End: 0.611,
-  layer2Start: 0.56,
-  layer2End: 0.636,
-  layer3Start: 0.581,
-  layer3End: 0.658,
+  layer2Start: 0.64,
+  layer2End: 0.74,
+  layer3Start: 0.66,
+  layer3End: 0.76,
   layer1Opacity: 1,
   layer2Opacity: 0.55,
   layer3Opacity: 0.55,
-  greenStart: 0.7,
+  greenStart: 0.74,
   greenEnd: 0.86,
-  recommendStart: 0.641,
-  recommendEnd: 0.899,
+  recommendStart: 0.74,
+  recommendEnd: 0.9,
   recommendFromYPx: 28,
 } as const;
+
+/** Bump when phase-3 morph logic changes so the Hero scrub effect remounts on HMR. */
+export const PHONE_UI_MORPH_REV = 8;
+
+/** Sharpness gradient stop colors (matches PhoneHomeUI.tsx defs). */
+const SHARPNESS_GRAD_STOPS = ['#f96d28', '#ffb92e', '#b0f13f'] as const;
+/**
+ * Visible charcoal the arc settles into (reads like the card’s gray track
+ * on the dark screen). Keep full stroke opacity — do NOT fade the arc out.
+ */
+const ARC_MORPH_GRAY = '#6a6560';
+
+type CubicSegment = readonly [
+  c1x: number,
+  c1y: number,
+  c2x: number,
+  c2y: number,
+  x: number,
+  y: number,
+];
+
+type CubicPath = {
+  start: readonly [x: number, y: number];
+  segments: readonly CubicSegment[];
+};
+
+const MORPH_VIEW = 100;
+const MORPH_RING_RADIUS = 45;
+const MORPH_SEGMENTS = 9;
+
+function createCircleMorphPath(): CubicPath {
+  const step = (Math.PI * 2) / MORPH_SEGMENTS;
+  const alpha = (4 / 3) * Math.tan(step / 4);
+  const segments: CubicSegment[] = [];
+
+  for (let i = 0; i < MORPH_SEGMENTS; i++) {
+    const a0 = -Math.PI / 2 + i * step;
+    const a1 = a0 + step;
+    const x0 = MORPH_VIEW / 2 + MORPH_RING_RADIUS * Math.cos(a0);
+    const y0 = MORPH_VIEW / 2 + MORPH_RING_RADIUS * Math.sin(a0);
+    const x1 = MORPH_VIEW / 2 + MORPH_RING_RADIUS * Math.cos(a1);
+    const y1 = MORPH_VIEW / 2 + MORPH_RING_RADIUS * Math.sin(a1);
+    segments.push([
+      x0 - alpha * MORPH_RING_RADIUS * Math.sin(a0),
+      y0 + alpha * MORPH_RING_RADIUS * Math.cos(a0),
+      x1 + alpha * MORPH_RING_RADIUS * Math.sin(a1),
+      y1 - alpha * MORPH_RING_RADIUS * Math.cos(a1),
+      x1,
+      y1,
+    ]);
+  }
+
+  return {
+    start: [MORPH_VIEW / 2, MORPH_VIEW / 2 - MORPH_RING_RADIUS],
+    segments,
+  };
+}
+
+const SHARPNESS_CIRCLE_PATH = createCircleMorphPath();
+
+function serializeCubicPath(path: CubicPath) {
+  const parts = [`M ${path.start[0]} ${path.start[1]}`];
+  path.segments.forEach((segment) => {
+    parts.push(`C ${segment.join(' ')}`);
+  });
+  return parts.join(' ');
+}
+
+const SHARPNESS_CIRCLE_PATH_D = serializeCubicPath(SHARPNESS_CIRCLE_PATH);
 
 /** @deprecated Use PHONE_UI_PHASE1_WEIGHT — kept as alias for any external reads. */
 export const PHONE_UI_DURATION_S = PHONE_UI_PHASE1_WEIGHT;
@@ -252,11 +328,12 @@ export type PhoneHomeUiElements = {
   sharpnessValue: HTMLElement;
   sharpnessValueWrap: HTMLElement;
   sharpnessLabel: HTMLElement;
-  sharpnessProgress: SVGCircleElement;
+  sharpnessProgress: SVGPathElement;
   sharpnessTrack: SVGCircleElement;
   sharpnessRingWrap: HTMLElement;
   sharpnessCircumference: number;
   calendarRoot: HTMLElement;
+  calendarFrame: HTMLElement;
   calLayers: SVGCircleElement[];
   calGreen: SVGCircleElement;
   calGreenCircumference: number;
@@ -268,34 +345,67 @@ function dashOffset(circumference: number, pct: number) {
   return circumference * (1 - Math.min(Math.max(pct, 0), 100) / 100);
 }
 
-/** Flatten the Sharpness ring into a wide bottom arc (Figma 1330:898). */
+/** Hex → RGB channels. */
+function hexToRgb(hex: string): [number, number, number] {
+  const h = hex.replace('#', '');
+  return [
+    parseInt(h.slice(0, 2), 16),
+    parseInt(h.slice(2, 4), 16),
+    parseInt(h.slice(4, 6), 16),
+  ];
+}
+
+function lerpHex(from: string, to: string, t: number) {
+  const [r1, g1, b1] = hexToRgb(from);
+  const [r2, g2, b2] = hexToRgb(to);
+  const r = Math.round(r1 + (r2 - r1) * t);
+  const g = Math.round(g1 + (g2 - g1) * t);
+  const b = Math.round(b1 + (b2 - b1) * t);
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+/**
+ * Open and enlarge the Sharpness stroke without changing its circle geometry.
+ * Rotation and dash coverage create the unfolding motion; the curve never
+ * interpolates through rectangular or angular control points.
+ */
 function applySharpnessArcMorph(
   els: Pick<
     PhoneHomeUiElements,
-    'sharpnessProgress' | 'sharpnessTrack' | 'sharpnessRingWrap' | 'sharpnessCircumference'
+    | 'sharpnessRoot'
+    | 'sharpnessProgress'
+    | 'sharpnessCircumference'
   >,
-  t: number,
-  endPct: number,
+  pct: number,
+  colorProgress: number,
 ) {
-  const clamped = Math.min(Math.max(t, 0), 1);
-  const cal = PHONE_UI_CALENDAR;
-  const scaleX = gsap.utils.interpolate(1, cal.arcFlatScaleX, clamped);
-  const scaleY = gsap.utils.interpolate(1, cal.arcFlatScaleY, clamped);
-  const arcOrigin = '50% 88%';
-  gsap.set(els.sharpnessRingWrap, {
-    scaleX,
-    scaleY,
-    transformOrigin: arcOrigin,
-  });
-  gsap.set(els.sharpnessTrack, {
-    scaleX,
-    scaleY,
-    transformOrigin: '50% 50%',
-  });
-  const pct = gsap.utils.interpolate(PHONE_UI_SHARPNESS.to, endPct, clamped);
+  const colorT = Math.min(Math.max(colorProgress, 0), 1);
+  const shapedColor = colorT * colorT * (3 - 2 * colorT);
+  els.sharpnessProgress.setAttribute('d', SHARPNESS_CIRCLE_PATH_D);
   els.sharpnessProgress.style.strokeDashoffset = String(
     dashOffset(els.sharpnessCircumference, pct),
   );
+
+  // Gradient → solid charcoal on the SAME stroke (fully visible).
+  const stops = els.sharpnessRoot.querySelectorAll('#phoneUiSharpnessGrad stop');
+  stops.forEach((stop, i) => {
+    const from = SHARPNESS_GRAD_STOPS[i] ?? SHARPNESS_GRAD_STOPS[0];
+    stop.setAttribute('stop-color', lerpHex(from, ARC_MORPH_GRAY, shapedColor));
+  });
+}
+
+function resetSharpnessGradient(els: Pick<PhoneHomeUiElements, 'sharpnessRoot'>) {
+  const stops = els.sharpnessRoot.querySelectorAll('#phoneUiSharpnessGrad stop');
+  stops.forEach((stop, i) => {
+    const color = SHARPNESS_GRAD_STOPS[i] ?? SHARPNESS_GRAD_STOPS[0];
+    stop.setAttribute('stop-color', color);
+  });
+}
+
+function resetSharpnessPath(
+  els: Pick<PhoneHomeUiElements, 'sharpnessProgress'>,
+) {
+  els.sharpnessProgress.setAttribute('d', SHARPNESS_CIRCLE_PATH_D);
 }
 
 function showRoot(root: HTMLElement) {
@@ -399,17 +509,26 @@ export function setPhoneUiFinal(els: PhoneHomeUiElements) {
     autoAlpha: 0,
     x: 0,
     y: PHONE_UI_CALENDAR.arcEndYPx * scale,
-    scale: PHONE_UI_SHARPNESS.endScale * PHONE_UI_CALENDAR.sharpEndScaleMul,
+    scale: PHONE_UI_SHARPNESS.endScale * PHONE_UI_CALENDAR.arcEndScaleMul,
     transformOrigin: '50% 50%',
   });
-  gsap.set(els.sharpnessRingWrap, { scaleX: 1, scaleY: 1, transformOrigin: '50% 50%' });
+  gsap.set(els.sharpnessRingWrap, {
+    rotation: 0,
+    scaleX: 1,
+    scaleY: 1,
+    transformOrigin: '50% 50%',
+  });
   gsap.set(els.sharpnessTrack, { scaleX: 1, scaleY: 1, transformOrigin: '50% 50%' });
   gsap.set([els.sharpnessValueWrap, els.sharpnessLabel, els.sharpnessTrack], {
     opacity: 0,
   });
   els.sharpnessValue.textContent = String(PHONE_UI_SHARPNESS.to);
+  resetSharpnessGradient(els);
+  resetSharpnessPath(els);
   gsap.set(els.sharpnessProgress, {
     opacity: 0,
+    rotation: 0,
+    transformOrigin: '50% 50%',
     strokeDashoffset: dashOffset(els.sharpnessCircumference, PHONE_UI_SHARPNESS.to),
   });
 
@@ -420,6 +539,7 @@ export function setPhoneUiFinal(els: PhoneHomeUiElements) {
     scale: PHONE_UI_CALENDAR.cardToScale,
     transformOrigin: '50% 50%',
   });
+  gsap.set(els.calendarFrame, { opacity: 1 });
   const layerOpacities = [
     PHONE_UI_CALENDAR.layer1Opacity,
     PHONE_UI_CALENDAR.layer2Opacity,
@@ -469,14 +589,23 @@ export function setPhoneUiInitial(els: PhoneHomeUiElements) {
     scale: PHONE_UI_SHARPNESS.startScale,
     transformOrigin: '50% 50%',
   });
-  gsap.set(els.sharpnessRingWrap, { scaleX: 1, scaleY: 1, transformOrigin: '50% 50%' });
+  gsap.set(els.sharpnessRingWrap, {
+    rotation: 0,
+    scaleX: 1,
+    scaleY: 1,
+    transformOrigin: '50% 50%',
+  });
   gsap.set(els.sharpnessTrack, { scaleX: 1, scaleY: 1, transformOrigin: '50% 50%' });
   gsap.set([els.sharpnessValueWrap, els.sharpnessLabel, els.sharpnessTrack], {
     opacity: 1,
   });
   els.sharpnessValue.textContent = String(PHONE_UI_SHARPNESS.from);
+  resetSharpnessGradient(els);
+  resetSharpnessPath(els);
   gsap.set(els.sharpnessProgress, {
     opacity: 1,
+    rotation: 0,
+    transformOrigin: '50% 50%',
     strokeDashoffset: dashOffset(els.sharpnessCircumference, PHONE_UI_SHARPNESS.from),
   });
 
@@ -487,6 +616,7 @@ export function setPhoneUiInitial(els: PhoneHomeUiElements) {
     scale: PHONE_UI_CALENDAR.cardFromScale,
     transformOrigin: '50% 50%',
   });
+  gsap.set(els.calendarFrame, { opacity: 0 });
   els.calLayers.forEach((layer) => gsap.set(layer, { opacity: 0 }));
   gsap.set(els.calGreen, {
     opacity: 0.85,
@@ -625,6 +755,7 @@ export function buildPhoneUiTimeline(
     },
     0,
   );
+  tl.set(els.calendarFrame, { opacity: 0 }, 0);
   tl.set(els.calLayers, { opacity: 0 }, 0);
   tl.set(
     els.calGreen,
@@ -712,7 +843,27 @@ export function buildPhoneUiTimeline(
   );
   tl.to(
     els.sharpnessRoot,
-    { autoAlpha: 1, duration: sharpDur * 0.35, ease: sharpEase },
+    {
+      autoAlpha: 1,
+      duration: sharpDur * 0.35,
+      ease: sharpEase,
+      onStart: () => {
+        resetSharpnessGradient(els);
+        resetSharpnessPath(els);
+        gsap.set(els.sharpnessProgress, {
+          opacity: 1,
+          rotation: 0,
+          transformOrigin: '50% 50%',
+        });
+        gsap.set(els.sharpnessRingWrap, {
+          rotation: 0,
+          scaleX: 1,
+          scaleY: 1,
+          transformOrigin: '50% 50%',
+        });
+        gsap.set(els.sharpnessTrack, { scaleX: 1, scaleY: 1, transformOrigin: '50% 50%' });
+      },
+    },
     sharpStart,
   );
   tl.to(
@@ -780,7 +931,7 @@ export function buildPhoneUiTimeline(
     tl.to(
       els.sharpnessRoot,
       {
-        scale: PHONE_UI_SHARPNESS.endScale * cal.sharpEndScaleMul,
+        scale: PHONE_UI_SHARPNESS.endScale * cal.sharpPeakScaleMul,
         y: cal.sharpEndYPx * scale,
         duration: p3d(cal.sharpContinueStart, cal.sharpContinueEnd),
         ease: calSharpEase,
@@ -816,30 +967,83 @@ export function buildPhoneUiTimeline(
       p3t(cal.labelFadeStart),
     );
 
-    // 2. Sharpness ring opens into a wide bottom arc (same object → card viz).
-    const arcProxy = { t: 0 };
+    // 2. Recording-matched two-stage morph:
+    // full ring → clockwise collapse to a point → rebuild from the left.
+    const arcState = {
+      pct: PHONE_UI_SHARPNESS.to,
+      color: 0,
+    };
+    const renderArc = () =>
+      applySharpnessArcMorph(els, arcState.pct, arcState.color);
+
     tl.to(
-      arcProxy,
+      arcState,
       {
-        t: 1,
-        duration: p3d(cal.arcOpenStart, cal.arcOpenEnd),
-        ease: calSharpEase,
-        onUpdate: () => applySharpnessArcMorph(els, arcProxy.t, cal.arcPctEnd),
+        pct: 0.8,
+        duration: p3d(cal.arcCollapseStart, cal.arcCollapseEnd),
+        ease: 'power2.in',
+        onUpdate: renderArc,
       },
-      p3t(cal.arcOpenStart),
+      p3t(cal.arcCollapseStart),
+    );
+    tl.to(
+      els.sharpnessProgress,
+      {
+        rotation: -90,
+        duration: p3d(cal.arcCollapseStart, cal.arcCollapseEnd),
+        ease: 'power2.inOut',
+        transformOrigin: '50% 50%',
+      },
+      p3t(cal.arcCollapseStart),
+    );
+    tl.to(
+      els.sharpnessProgress,
+      {
+        opacity: 0,
+        duration: p3d(cal.arcCollapseEnd, cal.arcClearEnd),
+        ease: 'power1.in',
+      },
+      p3t(cal.arcCollapseEnd),
+    );
+    tl.set(
+      els.sharpnessProgress,
+      { opacity: 1 },
+      p3t(cal.arcRebuildStart),
+    );
+    tl.to(
+      arcState,
+      {
+        pct: cal.arcPctEnd,
+        duration: p3d(cal.arcRebuildStart, cal.arcRebuildEnd),
+        ease: calSharpEase,
+        onStart: renderArc,
+        onUpdate: renderArc,
+      },
+      p3t(cal.arcRebuildStart),
     );
     tl.to(
       els.sharpnessRoot,
       {
+        scale: PHONE_UI_SHARPNESS.endScale * cal.arcEndScaleMul,
         y: cal.arcEndYPx * scale,
-        duration: p3d(cal.arcOpenStart, cal.arcOpenEnd),
+        duration: p3d(cal.arcRebuildStart, cal.arcRebuildEnd),
         ease: calSharpEase,
         transformOrigin: '50% 50%',
       },
-      p3t(cal.arcOpenStart),
+      p3t(cal.arcRebuildStart),
+    );
+    tl.to(
+      arcState,
+      {
+        color: 1,
+        duration: p3d(cal.arcColorStart, cal.arcColorEnd),
+        ease: calLayerEase,
+        onUpdate: renderArc,
+      },
+      p3t(cal.arcColorStart),
     );
 
-    // 3–4. Calendar card fades/scales in behind the evolving arc.
+    // 3–4. Schedule card slides up from below while the arc is morphing.
     tl.fromTo(
       els.calendarRoot,
       {
@@ -858,11 +1062,36 @@ export function buildPhoneUiTimeline(
       },
       p3t(cal.cardStart),
     );
+    tl.fromTo(
+      els.calendarFrame,
+      { opacity: 0 },
+      {
+        opacity: 1,
+        duration: p3d(cal.frameStart, cal.frameEnd),
+        ease: calLayerEase,
+        immediateRender: false,
+      },
+      p3t(cal.frameStart),
+    );
 
-    // Sharpness filled arc hands off into the card viz — reset flatten transforms.
+    // Atomic same-position handoff: the card's outer gray arc stays fully
+    // hidden until the existing colored path has completed its own gray morph.
+    // Both visibility changes resolve on the same rendered frame.
+    tl.set(els.calendarFrame, { opacity: 1 }, p3t(cal.sharpExitStart));
+    tl.set(
+      els.calLayers[0],
+      { opacity: cal.layer1Opacity },
+      p3t(cal.sharpExitStart),
+    );
+    tl.set(els.sharpnessRoot, { autoAlpha: 0 }, p3t(cal.sharpExitStart));
     tl.set(
       els.sharpnessRingWrap,
-      { scaleX: 1, scaleY: 1, transformOrigin: '50% 50%' },
+      { rotation: 0, scaleX: 1, scaleY: 1, transformOrigin: '50% 50%' },
+      p3t(cal.sharpExitStart),
+    );
+    tl.set(
+      els.sharpnessProgress,
+      { rotation: 0, transformOrigin: '50% 50%' },
       p3t(cal.sharpExitStart),
     );
     tl.set(
@@ -870,28 +1099,10 @@ export function buildPhoneUiTimeline(
       { scaleX: 1, scaleY: 1, transformOrigin: '50% 50%' },
       p3t(cal.sharpExitStart),
     );
-    tl.to(
-      els.sharpnessProgress,
-      {
-        opacity: 0,
-        duration: p3d(cal.sharpExitStart, cal.sharpExitEnd),
-        ease: calSharpEase,
-      },
-      p3t(cal.sharpExitStart),
-    );
-    tl.to(
-      els.sharpnessRoot,
-      {
-        autoAlpha: 0,
-        duration: p3d(cal.sharpExitStart, cal.sharpExitEnd),
-        ease: calLayerEase,
-      },
-      p3t(cal.sharpExitStart),
-    );
 
-    // 5. Concentric layers appear back → front.
+    // 5. Only the secondary inner arcs build underneath the still-moving arc.
+    // The outer arc participates exclusively in the atomic handoff above.
     const layerTargets = [
-      { el: els.calLayers[0], start: cal.layer1Start, end: cal.layer1End, op: cal.layer1Opacity },
       { el: els.calLayers[1], start: cal.layer2Start, end: cal.layer2End, op: cal.layer2Opacity },
       { el: els.calLayers[2], start: cal.layer3Start, end: cal.layer3End, op: cal.layer3Opacity },
     ];

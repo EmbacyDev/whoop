@@ -153,6 +153,11 @@
   transform: rotate(-90deg);
 }
 
+.sharpnessRingSvg {
+  transform: none;
+  overflow: visible;
+}
+
 .track {
   fill: none;
   stroke: rgb(249 243 236 / 14%);
@@ -205,15 +210,16 @@
 
 /*
  * Calendar card — Figma 1330:1129 on 1833×3973 screen.
- * 922×902 @ left 462 / top 786 → 50.3% × 22.7%, top 19.8%.
+ * Enlarged proportionally from the 922×902 source card while preserving its
+ * aspect ratio and all internal container-relative spacing.
  * Circular viz overflows the bottom edge (center below card).
  */
 .calendarAnchor {
   position: absolute;
   z-index: 1;
   left: 50%;
-  top: 19.8%;
-  width: 50.3%;
+  top: 15%;
+  width: 73.2%;
   transform: translateX(-50%);
   pointer-events: none;
 }
@@ -229,6 +235,17 @@
   will-change: transform, opacity;
   transform-origin: 50% 50%;
   container-type: inline-size;
+}
+
+.calendarFrame {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  box-sizing: border-box;
+  border: 0.35cqw solid rgb(249 243 236 / 6%);
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .calHeader {

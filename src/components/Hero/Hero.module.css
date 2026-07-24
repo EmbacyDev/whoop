@@ -185,6 +185,10 @@
   top: calc(var(--hero-header-height) + 1.5rem + 20px);
 }
 
+.copyFinal .headingSecondary {
+  max-width: 746px;
+}
+
 .copyIntro .indicator {
   pointer-events: auto;
 }
