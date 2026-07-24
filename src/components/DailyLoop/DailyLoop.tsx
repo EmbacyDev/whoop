@@ -6,9 +6,16 @@ import { usePreloadImages } from '../../hooks/usePreloadImages';
 import { Timeline } from './Timeline/Timeline';
 import { LoopCard } from './LoopCard/LoopCard';
 import { dailyLoopStates, timelineHours } from './dailyLoopData';
+import {
+  DAILY_LOOP_FINAL_HOLD_VH,
+  DAILY_LOOP_HOLD_FRACTION,
+  DAILY_LOOP_SCROLL_PER_STATE_VH,
+  DAILY_LOOP_STEP_DURATION_MS,
+} from './dailyLoopScrollMap';
 import styles from './DailyLoop.module.css';
 
-const IMAGE_URLS = dailyLoopStates.map((state) => state.image);
+/** Warm PNG overlays; videos use `preload="auto"` on each face. */
+const OVERLAY_URLS = dailyLoopStates.map((state) => state.overlay);
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -34,37 +41,29 @@ function hourIndexForScroll(scrollIndex: number): number {
  * sentinel enters the viewport (no ancestor transform that breaks sticky).
  */
 export function DailyLoop() {
-  const sectionRef = useRef<HTMLElement>(null);
-  const sentinelRef = useRef<HTMLDivElement>(null);
-  const [entranceVisible, setEntranceVisible] = useState(false);
-  usePreloadImages(IMAGE_URLS);
+  const headingRef = useRef<HTMLDivElement>(null);
+  const [headingVisible, setHeadingVisible] = useState(false);
+  usePreloadImages(OVERLAY_URLS);
 
-  // Observe a 1px sentinel at the section top — NOT the tall pin track.
-  // Observing the full section with threshold failed because the pin track
-  // is ~4× viewport tall, so intersection ratio stayed tiny near entry.
+  // Same IO pattern as Block 2 "Outsmart your burnout" heading.
   useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return;
+    const el = headingRef.current;
+    if (!el) return;
 
     if (typeof IntersectionObserver === 'undefined') {
-      setEntranceVisible(true);
-      return;
-    }
-
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      setEntranceVisible(true);
+      setHeadingVisible(true);
       return;
     }
 
     const observer = new IntersectionObserver(
       (entries) => {
         const entry = entries[0];
-        if (entry?.isIntersecting) setEntranceVisible(true);
+        if (!entry) return;
+        setHeadingVisible(entry.isIntersecting);
       },
-      // Fire as the Daily Loop heading approaches the lower viewport.
-      { threshold: 0, rootMargin: '0px 0px -18% 0px' },
+      { threshold: 0.35, rootMargin: '0px 0px -8% 0px' },
     );
-    observer.observe(sentinel);
+    observer.observe(el);
     return () => observer.disconnect();
   }, []);
 
@@ -82,9 +81,10 @@ export function DailyLoop() {
     dissolveProgress,
   } = useDailyLoopPin({
     stateCount: dailyLoopStates.length,
-    scrollPerStateVh: 2.4,
-    finalHoldVh: 0.25,
-    stepDurationMs: 2300,
+    scrollPerStateVh: DAILY_LOOP_SCROLL_PER_STATE_VH,
+    holdFraction: DAILY_LOOP_HOLD_FRACTION,
+    finalHoldVh: DAILY_LOOP_FINAL_HOLD_VH,
+    stepDurationMs: DAILY_LOOP_STEP_DURATION_MS,
   });
 
   const index = enabled ? displayIndex : 0;
@@ -98,20 +98,21 @@ export function DailyLoop() {
   return (
     <section
       id="daily-loop"
-      ref={sectionRef}
       className={styles.section}
-      data-visible={entranceVisible}
       data-pinned={enabled}
     >
-      {/* IO target — independent of the tall pin-track height. */}
-      <div ref={sentinelRef} className={styles.entranceSentinel} aria-hidden="true" />
-
       <Container>
-        <SectionHeading
-          className={styles.heading}
-          title="The Daily Loop"
-          subtitle="WHOOP doesn't rewrite your calendar. It acts as a bio-consultant, guiding your energy through a 24-hour cycle."
-        />
+        <div
+          ref={headingRef}
+          className={styles.headingEntrance}
+          data-visible={headingVisible}
+        >
+          <SectionHeading
+            className={styles.heading}
+            title="The Daily Loop"
+            subtitle="WHOOP doesn't rewrite your calendar. It acts as a bio-consultant, guiding your energy through a 24-hour cycle."
+          />
+        </div>
       </Container>
 
       <div className={styles.pinTrack} ref={pinRef} data-pinned={enabled}>

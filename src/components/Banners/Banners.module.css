@@ -8,22 +8,17 @@
   z-index: 1;
   background: var(--color-cream);
   padding-block: var(--space-2xl);
+  padding-bottom: 0;
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-  /* Kill sub-pixel seams between sticky hero and this panel. */
-  margin-top: -1px;
-  padding-top: calc(var(--space-2xl) + 1px);
+  /*
+   * Pull up by one viewport so Block 2 slides over the Hero’s final sticky
+   * hold (HERO_COVER_VH) — same cover transition on mobile + desktop.
+   */
+  margin-top: calc(-100vh + 1px);
+  margin-top: calc(-100dvh + 1px);
+  /* 20px tighter than the previous top pad above the Block 2 heading. */
+  padding-top: calc(var(--space-2xl) + 1px - 20px);
   overflow: visible;
-}
-
-/*
- * Desktop: pull the panel up by one viewport so it slides over the Hero’s
- * final sticky hold (HERO_COVER_VH) instead of a normal section scroll.
- */
-@media (min-width: 768px) {
-  .section {
-    margin-top: calc(-100vh + 1px);
-    margin-top: calc(-100dvh + 1px);
-  }
 }
 
 /*

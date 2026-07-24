@@ -25,7 +25,7 @@
 
 /*
  * Media clip only — entrance lives on `.banner` so text + overlay reveal
- * with the photo. Clips oversized mobile parallax so it never shows an edge.
+ * with the video. Clips overflow so cover framing never shows an edge.
  */
 .imageReveal {
   position: absolute;
@@ -39,27 +39,70 @@
   display: none;
 }
 
-/*
- * Mobile still photo. Bleed buffer matched to the export + useParallax (14px).
- */
-.mobileImage {
+/* Mobile MP4 — full-bleed cover inside the 355×600 card. */
+.mobileVideo {
   position: absolute;
-  top: -5%;
-  left: 0;
+  inset: 0;
   width: 100%;
-  height: 110%;
+  height: 100%;
   object-fit: cover;
-  will-change: transform;
+  object-position: center center;
+  pointer-events: none;
 }
 
 /*
- * Sharp HTML percentage over the video ring hole.
- * Geometry from the exported MP4 frame (2688×1260) mapped through object-fit:
- * cover into the 1344×580 banner box — not the static Figma still, which
- * places the card differently.
+ * Sharp HTML percentage over the video ring hole (not baked into the MP4).
+ * Mobile geometry from Figma 1175:10854 / 10855 (355×600 banner):
+ * ring 74.75 @ card pad → left 30.75%, top 38.92%, size 21.06% × 12.46%.
  */
 .ringMetric {
-  display: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  z-index: 2;
+  left: 30.75%;
+  top: 38.92%;
+  width: 21.06%;
+  height: 12.46%;
+  box-sizing: border-box;
+  color: var(--color-cream);
+  pointer-events: none;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
+/*
+ * Figma Metric Container (1175:10856): inline pair, items-start
+ * so "%" top edge meets the digit tops — not baseline or vertical center.
+ */
+.ringValue {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.33cqw; /* ~1.17px @ 355 */
+  line-height: 1;
+}
+
+.ringValueNumber {
+  font-family: var(--font-body);
+  font-weight: 400;
+  /* 23.242 / 355 ≈ 6.547cqw */
+  font-size: 6.547cqw;
+  font-size: max(1.125rem, 6.547cqw);
+  letter-spacing: -0.0134em;
+  line-height: 1;
+  opacity: 0.98;
+  text-box: trim-both cap alphabetic;
+}
+
+.ringValuePercent {
+  font-family: var(--font-body);
+  font-weight: 500;
+  /* 10.168 / 355 ≈ 2.864cqw */
+  font-size: 2.864cqw;
+  font-size: max(0.55rem, 2.864cqw);
+  line-height: 1;
+  text-box: trim-both cap alphabetic;
 }
 
 .overlay {
@@ -73,14 +116,23 @@
   position: absolute;
   top: 4.25rem; /* 68px per Figma mobile */
   left: 50%;
-  transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 1rem; /* 16px per Figma mobile */
   text-align: center;
-  width: min(20rem, calc(100% - 3rem));
+  width: min(18.5625rem, calc(100% - 3.625rem)); /* 297px @ 355 */
   color: var(--color-cream);
+  opacity: 0;
+  transform: translateX(-50%) translateY(10px);
+  transition:
+    opacity 0.9s var(--ease-standard),
+    transform 0.9s var(--ease-standard);
+}
+
+.banner[data-visible='true'] .text {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
 /*
@@ -120,7 +172,7 @@
     pointer-events: none;
   }
 
-  .mobileImage {
+  .mobileVideo {
     display: none;
   }
 
@@ -128,55 +180,27 @@
    * Ring bbox on frame0 ≈ 516,264–768,513 in 2688×1260.
    * Cover scale = 0.5 → displayed 1344×630, y-offset -25 into 580-tall box.
    */
-  /* Positions the metric group in the ring; does not own digit/% alignment. */
   .ringMetric {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: absolute;
-    z-index: 2;
     left: 19.2%;
     top: 18.45%;
     width: 9.375%;
     height: 21.72%;
-    box-sizing: border-box;
-    color: var(--color-cream);
-    pointer-events: none;
-    -webkit-font-smoothing: antialiased;
-    text-rendering: geometricPrecision;
   }
 
-  /*
-   * Figma Metric Container (1175:10240): inline pair, gap 2px, items-start
-   * so "%" top edge meets the digit tops — not baseline or vertical center.
-   */
   .ringValue {
-    display: inline-flex;
-    align-items: flex-start;
     gap: 0.15cqw; /* 2px @ 1344 */
-    line-height: 1;
   }
 
   .ringValueNumber {
-    font-family: var(--font-body);
-    font-weight: 400;
     /* 39.661 / 1344 ≈ 2.951cqw */
     font-size: 2.951cqw;
     font-size: max(1.25rem, 2.951cqw);
-    letter-spacing: -0.0134em;
-    line-height: 1;
-    opacity: 0.98;
-    text-box: trim-both cap alphabetic;
   }
 
   .ringValuePercent {
-    font-family: var(--font-body);
-    font-weight: 500;
     /* 17.352 / 1344 ≈ 1.291cqw */
     font-size: 1.291cqw;
     font-size: max(0.65rem, 1.291cqw);
-    line-height: 1;
-    text-box: trim-both cap alphabetic;
   }
 
   .overlay {
@@ -187,8 +211,28 @@
     top: 50%;
     left: auto;
     right: clamp(var(--gutter), 8vw, 6.5rem);
-    transform: translateY(-50%);
+    transform: translateY(calc(-50% + 10px));
     width: 21.125rem; /* 338px per Figma */
     gap: 0.875rem; /* 14px per Figma desktop */
+  }
+
+  .banner[data-visible='true'] .text {
+    transform: translateY(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .text,
+  .banner[data-visible='true'] .text {
+    opacity: 1;
+    transition: none;
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) and (min-width: 768px) {
+  .text,
+  .banner[data-visible='true'] .text {
+    transform: translateY(-50%);
   }
 }

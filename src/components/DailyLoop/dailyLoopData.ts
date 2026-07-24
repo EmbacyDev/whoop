@@ -1,7 +1,11 @@
-import state1Morning from '../../assets/images/dayloop/state-1-morning.jpg';
-import state2Guidance from '../../assets/images/dayloop/state-2-guidance.jpg';
-import state3Clearance from '../../assets/images/dayloop/state-3-clearance.jpg';
-import state4Recap from '../../assets/images/dayloop/state-4-recap.jpg';
+import loop1Video from '../../assets/images/dayloop/Daily Loop 1-desktop-1_new.mp4';
+import loop1Overlay from '../../assets/images/dayloop/Daily Loop 1-desktop-2.png';
+import loop2Video from '../../assets/images/dayloop/Daily Loop 2-desktop-1_new.mp4';
+import loop2Overlay from '../../assets/images/dayloop/Daily Loop 2-desktop-2.png';
+import loop3Video from '../../assets/images/dayloop/Daily Loop 3-desktop-1_new.mp4';
+import loop3Overlay from '../../assets/images/dayloop/Daily Loop 3-desktop-2.png';
+import loop4Video from '../../assets/images/dayloop/Daily Loop 4-desktop-1_new.mp4';
+import loop4Overlay from '../../assets/images/dayloop/Daily Loop 4-desktop-2.png';
 
 export type DailyLoopState = {
   id: string;
@@ -9,7 +13,10 @@ export type DailyLoopState = {
   hour: string;
   pillLabel: string;
   description: string;
-  image: string;
+  /** Background video (`*-desktop-1`). */
+  video: string;
+  /** Transparent PNG overlay on top of the video (`*-desktop-2`). */
+  overlay: string;
   imageAlt: string;
 };
 
@@ -36,8 +43,8 @@ export const timelineHours: string[] = (() => {
 })();
 
 /**
- * One entry per Figma "Block 3.x" desktop frame. UI cards (Sharpness, AI Coach,
- * etc.) are baked into the photos — only the pill + description stay as HTML.
+ * One entry per Figma "Block 3.x" desktop frame.
+ * Each state is a looping muted video + transparent PNG overlay.
  */
 export const dailyLoopStates: DailyLoopState[] = [
   {
@@ -46,7 +53,8 @@ export const dailyLoopStates: DailyLoopState[] = [
     pillLabel: 'Morning Readiness',
     description:
       'Wake up to your Sharpness score. See your day mapped into floating intervals of high productivity and required recovery.',
-    image: state1Morning,
+    video: loop1Video,
+    overlay: loop1Overlay,
     imageAlt: 'Hands holding a phone showing a calendar day, with a Sharpness score of 94%',
   },
   {
@@ -55,7 +63,8 @@ export const dailyLoopStates: DailyLoopState[] = [
     pillLabel: 'Real-Time Guidance',
     description:
       'Meeting ran long? HRV dropping? AI Coach sends a soft, contextual prompt suggesting a 15-minute reset before your next big focus block.',
-    image: state2Guidance,
+    video: loop2Video,
+    overlay: loop2Overlay,
     imageAlt: 'A man in a meeting receiving an AI Coach prompt to take a 15-minute reset',
   },
   {
@@ -64,7 +73,8 @@ export const dailyLoopStates: DailyLoopState[] = [
     pillLabel: 'Strain Clearance',
     description:
       'Work ends and recovery begins. AI Coach highlights the optimal window to shed residual cognitive fatigue through an evening workout or total disconnect.',
-    image: state3Clearance,
+    video: loop3Video,
+    overlay: loop3Overlay,
     imageAlt: 'A woman walking through the city at golden hour with a Recovery Window suggestion',
   },
   {
@@ -73,7 +83,8 @@ export const dailyLoopStates: DailyLoopState[] = [
     pillLabel: 'The Evening Recap',
     description:
       "AI reviews your day's strain against your 8-week baseline. It forecasts tomorrow's peak focus windows and suggests the optimal sleep goal to match them.",
-    image: state4Recap,
+    video: loop4Video,
+    overlay: loop4Overlay,
     imageAlt: 'A man turning off a lamp before bed with a Performance Insight about sleep',
   },
 ];

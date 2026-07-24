@@ -1,26 +1,16 @@
 .section {
   --daily-loop-header-height: clamp(3.5rem, 2.5vw + 3rem, 4.3rem);
+  --daily-loop-block-gap: 10rem; /* 160px — gap from Block 2 feature cards */
   position: relative;
   background: var(--color-cream);
-  /* Figma Block 3: pt 100 / pb 140 at the design breakpoint */
-  padding-block: 6.25rem 8.75rem;
+  padding-top: var(--daily-loop-block-gap);
+  padding-bottom: var(--daily-loop-block-gap);
   overflow: clip;
-}
-
-.entranceSentinel {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 1px;
-  height: 1px;
-  pointer-events: none;
-  opacity: 0;
 }
 
 /* Safe fallback — never leave content permanently hidden. */
 @media (prefers-reduced-motion: reduce) {
-  .heading,
-  .pinTrack {
+  .headingEntrance {
     opacity: 1;
     transform: none;
     transition: none;
@@ -31,30 +21,28 @@
   padding-bottom: 0;
 }
 
-.heading {
-  /* Figma: 16px title↔subtitle, 40px heading↔content + 30px desktop nudge */
-  gap: 1rem;
-  margin-bottom: calc(2.5rem + 30px);
+/* Same entrance language as Block 2 `.headingEntrance`. */
+.headingEntrance {
   opacity: 0;
-  transform: translateY(20px);
+  transform: translateY(24px);
   transition:
     opacity 0.9s var(--ease-standard),
     transform 0.9s var(--ease-standard);
 }
 
-.section[data-visible='true'] .heading {
+.headingEntrance[data-visible='true'] {
   opacity: 1;
-  transform: translateY(0);
+  transform: none;
+}
+
+.heading {
+  /* Figma: 16px title↔subtitle, 40px heading↔content + 30px desktop nudge */
+  gap: 1rem;
+  margin-bottom: calc(2.5rem + 30px);
 }
 
 .pinTrack {
   position: relative;
-  opacity: 0;
-  transition: opacity 0.8s var(--ease-standard) 0.15s;
-}
-
-.section[data-visible='true'] .pinTrack {
-  opacity: 1;
 }
 
 .pinTrack[data-pinned='true'] {
@@ -104,7 +92,8 @@
 
 @media (max-width: 767px) {
   .section {
-    padding-block: var(--space-2xl);
+    padding-top: var(--daily-loop-block-gap);
+    padding-bottom: var(--space-2xl);
   }
 
   .section[data-pinned='true'] {

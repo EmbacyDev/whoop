@@ -4,6 +4,9 @@
  * Source: Whoop — IN / Development / Desktop
  * Reference viewports: 1440×768 (Scroll 1–5), 1440×1000 (Scroll 6).
  *
+ * Mobile keyframes: Whoop — IN / Development / Mobile (1175:10638)
+ * Reference viewports: 375×812 (Scroll 1–4), 375×768 (Scroll 5–6).
+ *
  * Phone values are viewport-relative:
  * - widthRatio  = device width / viewport width
  * - heightRatio = device height / viewport height (preferred when set)
@@ -14,6 +17,11 @@
  * a reveal scrub brings the full phone on-screen, HERO_PHONE_FULL_HOLD_VH
  * keeps it there briefly, then HERO_COVER_VH keeps the pin while Block 2
  * slides over (Banners −100vh).
+ *
+ * Frame selection (`isHeroPhoneMobileViewport`):
+ * - phones (any orientation) → mobile keyframes
+ * - portrait tablet → mobile keyframes
+ * - landscape tablet / desktop → desktop keyframes (exact HEAD path)
  *
  * Tweak freely after review — the scrub timeline reads this array in order.
  */
@@ -35,6 +43,31 @@ export type HeroPhoneKeyframe = {
 
 /** Device frame aspect from Figma (~317×646). */
 export const HERO_PHONE_ASPECT = 0.491;
+
+/** CSS phone / narrow breakpoint (portrait phones + small portrait tablets). */
+export const HERO_PHONE_MOBILE_MAX_WIDTH = 767;
+
+/**
+ * True phone short-edge ceiling — keeps phone-landscape on the mobile frame
+ * even when CSS width exceeds 767.
+ */
+const HERO_PHONE_SHORT_EDGE_MAX = 500;
+
+/**
+ * Mobile-frame keyframes when:
+ * - true phone (short edge ≤ 500) in any orientation, or
+ * - CSS width ≤ 767, or
+ * - portrait tablet (width ≥ 768 and height > width).
+ * Landscape tablet + desktop → desktop frame (never mobile).
+ */
+export function isHeroPhoneMobileViewport(
+  width = typeof window !== 'undefined' ? window.innerWidth : 1440,
+  height = typeof window !== 'undefined' ? window.innerHeight : 900,
+) {
+  if (Math.min(width, height) <= HERO_PHONE_SHORT_EDGE_MAX) return true;
+  if (width <= HERO_PHONE_MOBILE_MAX_WIDTH) return true;
+  return height > width;
+}
 
 /**
  * Scroll distance per scale keyframe segment, in viewport heights.
@@ -83,6 +116,25 @@ export const HERO_STAGE_CREAM = '#f9f3ec';
 const FINAL_HEIGHT_RATIO = 0.84;
 const FINAL_WIDTH_RATIO = 0.2864;
 
+/** Rings pose — framed phone size (also used for Meet Sharpness; only Y changes). */
+const MOBILE_RINGS_WIDTH_RATIO = 0.94;
+/**
+ * Vertical position so “Strain” sits ~60px above the viewport bottom
+ * (375×812 reference; size unchanged). Leaves clear beige above the device.
+ */
+const MOBILE_RINGS_TOP_RATIO = 0.209;
+
+/**
+ * Meet Sharpness → Dynamic score lock: same size as rings, shifted down ~80px.
+ * Identical for scroll-5 and peek so scale/position stay fixed across headings.
+ */
+const MOBILE_FINAL_WIDTH_RATIO = MOBILE_RINGS_WIDTH_RATIO;
+const MOBILE_FINAL_TOP_RATIO = MOBILE_RINGS_TOP_RATIO + 80 / 812;
+/** Height/vh for sticky + reveal when size is width-driven (375×812 reference). */
+const MOBILE_FINAL_HEIGHT_RATIO =
+  (MOBILE_RINGS_WIDTH_RATIO / HERO_PHONE_ASPECT) * (375 / 812);
+
+/** Desktop keyframes — exact values from git HEAD (0eb3579). */
 export const HERO_PHONE_KEYFRAMES: HeroPhoneKeyframe[] = [
   {
     id: 'scroll-1',
@@ -138,12 +190,73 @@ export const HERO_PHONE_KEYFRAMES: HeroPhoneKeyframe[] = [
   },
 ];
 
+/**
+ * Mobile entrance → locked Sharpness composition.
+ *
+ * Same camera-pullback idea as desktop: Scroll 1 is an oversized phone window
+ * into the hero crop. Scaling down reveals the device around that content.
+ *
+ * Rings → Meet Sharpness: same size, only a ~80px downward shift so the heading
+ * fits and the Sharpness ring stays in view. Locked through remaining headings.
+ */
+export const MOBILE_HERO_PHONE_KEYFRAMES: HeroPhoneKeyframe[] = [
+  {
+    id: 'scroll-1',
+    note:
+      'Hero close-up — oversized phone windows the hero video (same concept as desktop scroll-1)',
+    widthRatio: 1.55,
+    cx: 0.5,
+    topRatio: -0.35,
+  },
+  {
+    id: 'scroll-2',
+    note:
+      'Bridge scale; Y keeps phone center between scroll-1 and rings (no reverse up-wave)',
+    widthRatio: 572.8205 / 375,
+    cx: 0.5,
+    // Center-bridge on 375×812 vs rings pose (0.94 @ 0.209).
+    topRatio: -0.21,
+  },
+  {
+    id: 'scroll-3',
+    note: 'Rings pose — large framed phone; bottom may crop; UI scrub starts',
+    widthRatio: MOBILE_RINGS_WIDTH_RATIO,
+    cx: 0.5,
+    topRatio: MOBILE_RINGS_TOP_RATIO,
+  },
+  {
+    id: 'scroll-4',
+    note: 'Hold rings pose; Y-only drop to Meet Sharpness (same size)',
+    widthRatio: MOBILE_RINGS_WIDTH_RATIO,
+    cx: 0.5,
+    topRatio: MOBILE_RINGS_TOP_RATIO,
+  },
+  {
+    id: 'scroll-5',
+    note: 'Meet Sharpness — same size as rings, ~80px lower; locked thereafter',
+    widthRatio: MOBILE_FINAL_WIDTH_RATIO,
+    cx: 0.5,
+    topRatio: MOBILE_FINAL_TOP_RATIO,
+  },
+  {
+    id: 'scroll-6-peek',
+    note: 'Identical to Scroll 5 — phone fixed while copy / in-phone UI continue',
+    widthRatio: MOBILE_FINAL_WIDTH_RATIO,
+    cx: 0.5,
+    topRatio: MOBILE_FINAL_TOP_RATIO,
+  },
+];
+
 export type HeroPhoneLayout = {
   width: number;
   height: number;
   left: number;
   top: number;
 };
+
+export function getHeroPhoneKeyframes(isMobile: boolean): readonly HeroPhoneKeyframe[] {
+  return isMobile ? MOBILE_HERO_PHONE_KEYFRAMES : HERO_PHONE_KEYFRAMES;
+}
 
 /** Resolve a keyframe to a pixel box for the current viewport. */
 export function layoutForKeyframe(
@@ -174,47 +287,68 @@ export function layoutForKeyframe(
 }
 
 /** Size used once the phone reaches Scroll 6 peek (locked thereafter). */
-export function finalPhoneSize(viewportHeight: number) {
+export function finalPhoneSize(
+  viewportHeight: number,
+  isMobile = false,
+  viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1440,
+) {
+  if (isMobile) {
+    const width = MOBILE_RINGS_WIDTH_RATIO * viewportWidth;
+    const height = width / HERO_PHONE_ASPECT;
+    return { width, height };
+  }
+  // Desktop — exact HEAD formula (height-driven).
   const height = FINAL_HEIGHT_RATIO * viewportHeight;
   const width = height * HERO_PHONE_ASPECT;
   return { width, height };
 }
 
 /** Peek keyframe — final locked composition. */
-export function peekKeyframe(): HeroPhoneKeyframe {
-  return HERO_PHONE_KEYFRAMES[HERO_PHONE_KEYFRAMES.length - 1];
+export function peekKeyframe(isMobile = false): HeroPhoneKeyframe {
+  const frames = getHeroPhoneKeyframes(isMobile);
+  return frames[frames.length - 1];
 }
 
 /**
  * Sticky stage height in vh so the full peek phone fits in document flow.
- * Viewport still only shows the top portion until the reveal scrub brings it in.
+ * Desktop matches git HEAD exactly (no Math.max floor).
  */
-export function heroStickyVh(): number {
-  const peek = peekKeyframe();
-  return peek.topRatio + (peek.heightRatio ?? FINAL_HEIGHT_RATIO);
+export function heroStickyVh(isMobile = false): number {
+  const peek = peekKeyframe(isMobile);
+  if (!isMobile) {
+    return peek.topRatio + (peek.heightRatio ?? FINAL_HEIGHT_RATIO);
+  }
+  const heightRatio = peek.heightRatio ?? MOBILE_FINAL_HEIGHT_RATIO;
+  return Math.max(1, peek.topRatio + heightRatio);
 }
 
 /**
- * Viewport-heights of peek phone that sit below the fold at freeze
- * (`topRatio + heightRatio - 1`), plus a short pad before cover.
+ * Viewport-heights of peek phone that sit below the fold at freeze.
+ * Desktop matches git HEAD (always includes reveal pad).
  */
-export function heroPhoneRevealScrollVh(): number {
-  return Math.max(0, heroStickyVh() - 1) + HERO_PHONE_REVEAL_PAD_VH;
+export function heroPhoneRevealScrollVh(isMobile = false): number {
+  if (!isMobile) {
+    return Math.max(0, heroStickyVh(false) - 1) + HERO_PHONE_REVEAL_PAD_VH;
+  }
+  const overflow = Math.max(0, heroStickyVh(true) - 1);
+  if (overflow === 0) return 0;
+  return overflow + HERO_PHONE_REVEAL_PAD_VH;
 }
 
 /** Pin / scrub distance through scale → peek → hold → reveal → full-hold → cover (vh). */
-export function heroPinVh(): number {
-  const peekIndex = HERO_PHONE_KEYFRAMES.findIndex((k) => k.id === 'scroll-6-peek');
+export function heroPinVh(isMobile = false): number {
+  const frames = getHeroPhoneKeyframes(isMobile);
+  const peekIndex = frames.findIndex((k) => k.id === 'scroll-6-peek');
   return (
     HERO_PHONE_SEGMENT_VH * peekIndex +
     HERO_PHONE_HOLD_VH +
-    heroPhoneRevealScrollVh() +
+    heroPhoneRevealScrollVh(isMobile) +
     HERO_PHONE_FULL_HOLD_VH +
     HERO_COVER_VH
   );
 }
 
 /** Track contribution before pin spacer (sticky stage height). */
-export function heroTrackVh(): number {
-  return heroStickyVh();
+export function heroTrackVh(isMobile = false): number {
+  return heroStickyVh(isMobile);
 }

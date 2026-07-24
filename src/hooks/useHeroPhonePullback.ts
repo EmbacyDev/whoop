@@ -8,19 +8,64 @@ import {
   HERO_PHONE_KEYFRAMES,
   HERO_PHONE_SEGMENT_VH,
   finalPhoneSize,
+  getHeroPhoneKeyframes,
   heroPhoneRevealScrollVh,
   heroPinVh,
   heroStickyVh,
+  isHeroPhoneMobileViewport,
   layoutForKeyframe,
   peekKeyframe,
   type HeroPhoneKeyframe,
   type HeroPhoneLayout,
 } from '../components/Hero/heroPhoneKeyframes';
+import type { PhoneHomeUIHandle } from '../components/Hero/PhoneHomeUI/PhoneHomeUI';
+import {
+  buildPhoneUiTimeline,
+  phoneUiSharpnessRingScrubTime,
+  setPhoneUiFinal,
+  setPhoneUiInitial,
+} from '../components/Hero/PhoneHomeUI/phoneHomeUiMotion';
 
 gsap.registerPlugin(ScrollTrigger);
 
+/**
+ * Desktop phone / media / copy timeline = git HEAD (0eb3579) phone path.
+ * Intro heading: scale 1→0.95 + fade in place on all frames.
+ * PhoneHomeUI nests on that schedule without delaying phone segments.
+ *
+ * Mobile / portrait-tablet uses MOBILE_HERO_PHONE_KEYFRAMES with the
+ * Sharpness-synced drop + Meet Sharpness hold (does not affect desktop).
+ */
+/**
+ * Intro heading (all frames): scale starts immediately with scroll;
+ * opacity is delayed so the title stays readable ~2.5× longer.
+ * Previous combined fade ended at t=0.5 → opacity now completes at t=1.25.
+ */
+const COPY_INTRO_SCALE_START = 0;
+const COPY_INTRO_SCALE_DURATION = 0.5;
+/** Subtle shrink while scrolling (no Y drift). */
+const COPY_INTRO_SCALE_END = 0.95;
+/** Hold full opacity through the scale, then fade out (ends 2.5× later). */
+const COPY_INTRO_OPACITY_START = 0.5;
+const COPY_INTRO_OPACITY_DURATION = 0.75;
+
+/** In-phone UI scrub begins at scroll-3 (t=2) on both paths. */
+const PHONE_UI_START = 2;
+const COPY_SHARPNESS_FADE_START = 4;
+const PHONE_UI_PHASE12_DURATION = COPY_SHARPNESS_FADE_START - PHONE_UI_START;
+
+/** Mobile-only: delay s4→s5 / peek for Sharpness ring sync. */
+const PHONE_DROP_SEGMENT = 3;
+const PHONE_PEEK_SEGMENT = 4;
+const MEET_SHARPNESS_HOLD = 0.45;
+const COPY_HANDOFF_DURATION = 0.35;
+
 type UseHeroPhonePullbackOptions = {
   enabled: boolean;
+  /**
+   * Desktop scrub gate (HEAD default 768). Mobile / portrait-tablet scrub is
+   * enabled separately via `isHeroPhoneMobileViewport` and does not use this.
+   */
   minWidth?: number;
 };
 
@@ -30,6 +75,7 @@ export type HeroPhonePullbackRefs = {
   phoneRef: RefObject<HTMLDivElement>;
   phoneChromeRef: RefObject<HTMLDivElement>;
   scroll1ImageRef: RefObject<HTMLDivElement>;
+  phoneHomeUiRef: RefObject<PhoneHomeUIHandle>;
   bgBeigeRef: RefObject<HTMLDivElement>;
   bgFinalRef: RefObject<HTMLDivElement>;
   copyIntroRef: RefObject<HTMLDivElement>;
@@ -61,25 +107,20 @@ function sizeVars(kf: HeroPhoneKeyframe) {
   };
 }
 
-function resolveLayout(kf: HeroPhoneKeyframe, lockedSize?: boolean): HeroPhoneLayout {
+/* ─── Desktop media box (exact HEAD) ─────────────────────────────────────── */
+
+function resolveLayoutDesktop(kf: HeroPhoneKeyframe, lockedSize?: boolean): HeroPhoneLayout {
   return lockedSize
     ? layoutForKeyframe(
         kf,
         window.innerWidth,
         window.innerHeight,
-        finalPhoneSize(window.innerHeight),
+        finalPhoneSize(window.innerHeight, false),
       )
     : layoutForKeyframe(kf, window.innerWidth, window.innerHeight);
 }
 
-/**
- * Full-bleed viewport cover in phone-local coordinates.
- *
- * Used through Scroll 1→5 so hero-bg keeps Scroll 1 / Figma framing — the
- * phone is a window into that crop. Collapsing into the portrait hole early
- * re-`cover`s the 16:9 video and crops corner trees.
- */
-function fullBleedInPhone(layout: HeroPhoneLayout) {
+function fullBleedInPhoneDesktop(layout: HeroPhoneLayout) {
   return {
     left: -layout.left,
     top: -layout.top,
@@ -88,17 +129,7 @@ function fullBleedInPhone(layout: HeroPhoneLayout) {
   };
 }
 
-/**
- * Fill the phone display (phone-local). Required at peek: viewport-tall
- * full-bleed only covers phone-local y ∈ [−top, −top+vh], so the below-fold
- * part of the display hole would show stage cream through the PNG.
- *
- * Inset slightly into the bezel (not the full box) so `#05252b` never sits
- * under iphone.png’s transparent outer pad / soft alpha — that read as a
- * blue hairline just below the silhouette. Inset stays < bottom chin (~2%)
- * so the hole remains fully covered.
- */
-function phoneFillBox(layout: HeroPhoneLayout) {
+function phoneFillBoxDesktop(layout: HeroPhoneLayout) {
   const insetX = layout.width * 0.02;
   const insetY = layout.height * 0.01;
   return {
@@ -109,34 +140,87 @@ function phoneFillBox(layout: HeroPhoneLayout) {
   };
 }
 
-function mediaBoxForKeyframe(kf: HeroPhoneKeyframe, lockedSize?: boolean) {
-  const layout = resolveLayout(kf, lockedSize);
-  // Peek / locked resting: fill the full display. Earlier scrub: viewport crop.
-  if (lockedSize || kf.id === 'scroll-6-peek') return phoneFillBox(layout);
-  return fullBleedInPhone(layout);
+function mediaBoxDesktop(kf: HeroPhoneKeyframe, lockedSize?: boolean) {
+  const layout = resolveLayoutDesktop(kf, lockedSize);
+  if (lockedSize || kf.id === 'scroll-6-peek') return phoneFillBoxDesktop(layout);
+  return fullBleedInPhoneDesktop(layout);
 }
 
-/** Image box for a keyframe (phone-local). */
-function imageBoxVars(kf: HeroPhoneKeyframe, lockedSize?: boolean) {
+function imageBoxVarsDesktop(kf: HeroPhoneKeyframe, lockedSize?: boolean) {
   return {
-    left: () => mediaBoxForKeyframe(kf, lockedSize).left,
-    top: () => mediaBoxForKeyframe(kf, lockedSize).top,
-    width: () => mediaBoxForKeyframe(kf, lockedSize).width,
-    height: () => mediaBoxForKeyframe(kf, lockedSize).height,
+    left: () => mediaBoxDesktop(kf, lockedSize).left,
+    top: () => mediaBoxDesktop(kf, lockedSize).top,
+    width: () => mediaBoxDesktop(kf, lockedSize).width,
+    height: () => mediaBoxDesktop(kf, lockedSize).height,
     borderRadius: 0,
+  };
+}
+
+/* ─── Mobile media box (mobile / portrait tablet only) ───────────────────── */
+
+function resolveLayoutMobile(kf: HeroPhoneKeyframe, lockedSize?: boolean): HeroPhoneLayout {
+  return lockedSize
+    ? layoutForKeyframe(
+        kf,
+        window.innerWidth,
+        window.innerHeight,
+        finalPhoneSize(window.innerHeight, true),
+      )
+    : layoutForKeyframe(kf, window.innerWidth, window.innerHeight);
+}
+
+function fullBleedInPhoneMobile(layout: HeroPhoneLayout) {
+  const viewLeft = -layout.left;
+  const viewTop = -layout.top;
+  const viewRight = viewLeft + window.innerWidth;
+  const viewBottom = viewTop + window.innerHeight;
+  const left = Math.min(0, viewLeft);
+  const top = Math.min(0, viewTop);
+  const right = Math.max(layout.width, viewRight);
+  const bottom = Math.max(layout.height, viewBottom);
+  return {
+    left,
+    top,
+    width: right - left,
+    height: bottom - top,
+  };
+}
+
+function phoneFillBoxMobile(layout: HeroPhoneLayout) {
+  const insetX = layout.width * 0.02;
+  const insetY = layout.height * 0.01;
+  return {
+    left: insetX,
+    top: insetY,
+    width: layout.width - insetX * 2,
+    height: layout.height - insetY,
+  };
+}
+
+function mediaBoxMobile(kf: HeroPhoneKeyframe, lockedSize?: boolean) {
+  const layout = resolveLayoutMobile(kf, lockedSize);
+  if (lockedSize || kf.id === 'scroll-6-peek' || kf.id === 'scroll-5') {
+    return phoneFillBoxMobile(layout);
+  }
+  return fullBleedInPhoneMobile(layout);
+}
+
+function imageBoxVarsMobile(kf: HeroPhoneKeyframe, lockedSize?: boolean) {
+  return {
+    left: () => mediaBoxMobile(kf, lockedSize).left,
+    top: () => mediaBoxMobile(kf, lockedSize).top,
+    width: () => mediaBoxMobile(kf, lockedSize).width,
+    height: () => mediaBoxMobile(kf, lockedSize).height,
+    borderRadius: '18% / 9%',
   };
 }
 
 /**
  * Sticky-track scrub through Figma Scroll 1→6 peek.
  *
- * phoneScreen is viewport full-bleed (phone-local) through Scroll 1→5 so the
- * phone windows Scroll 1 framing. At peek it switches to filling the phone
- * box so the display hole stays covered below the fold (no cream crop).
- *
- * At peek the phone size/position freeze; brief hold, then a reveal scrub so
- * the below-fold phone bottom enters the viewport, then HERO_COVER_VH pin
- * tail while Banners (−100vh) slide over. No additional phone scale.
+ * Desktop: git HEAD phone / video / copy path (unmodified by mobile branches).
+ * Mobile / portrait tablet: separate keyframes + media helpers + hold timing.
+ * Landscape tablet reuses the desktop path.
  */
 export function useHeroPhonePullback({
   enabled,
@@ -147,6 +231,7 @@ export function useHeroPhonePullback({
   const phoneRef = useRef<HTMLDivElement>(null!);
   const phoneChromeRef = useRef<HTMLDivElement>(null!);
   const scroll1ImageRef = useRef<HTMLDivElement>(null!);
+  const phoneHomeUiRef = useRef<PhoneHomeUIHandle>(null!);
   const bgBeigeRef = useRef<HTMLDivElement>(null!);
   const bgFinalRef = useRef<HTMLDivElement>(null!);
   const copyIntroRef = useRef<HTMLDivElement>(null!);
@@ -169,10 +254,22 @@ export function useHeroPhonePullback({
     const copySharpness = copySharpnessRef.current;
     const copyFinal = copyFinalRef.current;
 
-    const desktopMq = window.matchMedia(`(min-width: ${minWidth}px)`);
+    const desktopWidthMq = window.matchMedia(`(min-width: ${minWidth}px)`);
+    const orientationMq = window.matchMedia('(orientation: portrait)');
     const motionMq = window.matchMedia('(prefers-reduced-motion: reduce)');
 
     let ctx: gsap.Context | undefined;
+
+    const readPhoneUi = () => phoneHomeUiRef.current?.getElements() ?? null;
+
+    const resetPhoneUi = () => {
+      const els = readPhoneUi();
+      if (els) setPhoneUiInitial(els);
+    };
+
+    const applyHeroFrameAttr = (isMobile: boolean) => {
+      track.dataset.heroFrame = isMobile ? 'mobile' : 'desktop';
+    };
 
     const clearScrubLayout = () => {
       track.style.removeProperty('--hero-track-vh');
@@ -187,18 +284,16 @@ export function useHeroPhonePullback({
       track.style.setProperty('--hero-track-vh', '100vh');
     };
 
-    const setScrubLayout = () => {
-      // GSAP pin owns sticking — disable CSS sticky so it cannot re-stick after unpin.
+    const setScrubLayout = (isMobile: boolean) => {
       sticky.style.position = 'relative';
       sticky.style.overflow = 'hidden';
-      sticky.style.height = `${heroStickyVh() * 100}vh`;
-      // Track sizes to the stage; pinSpacing supplies scrub distance.
+      sticky.style.height = `${heroStickyVh(isMobile) * 100}vh`;
       track.style.height = 'auto';
-      track.style.setProperty('--hero-track-vh', `${heroStickyVh() * 100}vh`);
+      track.style.setProperty('--hero-track-vh', `${heroStickyVh(isMobile) * 100}vh`);
     };
 
-    const setImageBox = (kf: HeroPhoneKeyframe, locked?: boolean) => {
-      const box = mediaBoxForKeyframe(kf, locked);
+    const setImageBoxDesktop = (kf: HeroPhoneKeyframe, locked?: boolean) => {
+      const box = mediaBoxDesktop(kf, locked);
       gsap.set(scroll1Image, {
         left: box.left,
         top: box.top,
@@ -212,76 +307,98 @@ export function useHeroPhonePullback({
       });
     };
 
-    const setRestingStage = () => {
-      if (bgBeige) gsap.set(bgBeige, { opacity: 1 });
-      if (bgFinal) gsap.set(bgFinal, { opacity: 1 });
-      if (copyIntro) gsap.set(copyIntro, { opacity: 0, y: 0 });
-      if (scrollIndicator) gsap.set(scrollIndicator, { opacity: 0 });
-      if (copySharpness) gsap.set(copySharpness, { opacity: 0, y: 0 });
-      if (copyFinal) gsap.set(copyFinal, { opacity: 0, y: 0 });
-      if (phoneChrome) gsap.set(phoneChrome, { opacity: 1 });
-      setImageBox(peekKeyframe(), true);
+    const setImageBoxMobile = (kf: HeroPhoneKeyframe, locked?: boolean) => {
+      const box = mediaBoxMobile(kf, locked);
+      gsap.set(scroll1Image, {
+        left: box.left,
+        top: box.top,
+        width: box.width,
+        height: box.height,
+        borderRadius: '18% / 9%',
+        clipPath: 'none',
+        x: 0,
+        y: 0,
+        scale: 1,
+      });
     };
 
-    const setInitialStage = () => {
+    const attachPhoneUi = (tl: gsap.core.Timeline, scrubDuration: number) => {
+      const phoneUiEls = readPhoneUi();
+      if (phoneUiEls) {
+        setPhoneUiInitial(phoneUiEls);
+        tl.add(
+          buildPhoneUiTimeline(phoneUiEls, scrubDuration, {
+            phase12Duration: PHONE_UI_PHASE12_DURATION,
+          }),
+          PHONE_UI_START,
+        );
+      } else {
+        requestAnimationFrame(() => {
+          const retry = readPhoneUi();
+          if (!retry || !ctx) return;
+          setPhoneUiInitial(retry);
+          tl.add(
+            buildPhoneUiTimeline(retry, scrubDuration, {
+              phase12Duration: PHONE_UI_PHASE12_DURATION,
+            }),
+            PHONE_UI_START,
+          );
+          ScrollTrigger.refresh();
+        });
+      }
+    };
+
+    /** Desktop timeline — phone/media/copy match git HEAD; UI nests without delay. */
+    const buildDesktopScrub = () => {
+      const peek = peekKeyframe(false);
+      setScrubLayout(false);
+      applyLayout(phone, HERO_PHONE_KEYFRAMES[0]);
+
       if (bgBeige) gsap.set(bgBeige, { opacity: 1 });
       if (bgFinal) gsap.set(bgFinal, { opacity: 0 });
-      if (copyIntro) gsap.set(copyIntro, { opacity: 1, y: 0 });
-      // Own opacity for scrub; clear CSS reveal transition so it doesn't fight GSAP.
+      if (copyIntro) {
+        gsap.set(copyIntro, {
+          opacity: 1,
+          scale: 1,
+          y: 0,
+          transformOrigin: 'center center',
+        });
+      }
       if (scrollIndicator) gsap.set(scrollIndicator, { opacity: 1, transition: 'none' });
       if (copySharpness) gsap.set(copySharpness, { opacity: 0, y: 12 });
       if (copyFinal) gsap.set(copyFinal, { opacity: 0, y: 12 });
       if (phoneChrome) gsap.set(phoneChrome, { opacity: 0 });
-      setImageBox(HERO_PHONE_KEYFRAMES[0]);
-    };
-
-    const mount = () => {
-      ctx?.revert();
-      ctx = undefined;
-
-      const canScrub = enabled && desktopMq.matches && !motionMq.matches;
-      const peek = peekKeyframe();
-
-      gsap.set(phone, { opacity: 1, autoAlpha: 1 });
-
-      if (!canScrub) {
-        setRestingLayout();
-        applyLayout(phone, peek, finalPhoneSize(window.innerHeight));
-        setRestingStage();
-        return;
-      }
-
-      setScrubLayout();
-      applyLayout(phone, HERO_PHONE_KEYFRAMES[0]);
-      setInitialStage();
+      setImageBoxDesktop(HERO_PHONE_KEYFRAMES[0]);
+      resetPhoneUi();
 
       const holdDuration = HERO_PHONE_HOLD_VH / HERO_PHONE_SEGMENT_VH;
-      const revealDuration = heroPhoneRevealScrollVh() / HERO_PHONE_SEGMENT_VH;
+      const revealDuration = heroPhoneRevealScrollVh(false) / HERO_PHONE_SEGMENT_VH;
       const fullHoldDuration = HERO_PHONE_FULL_HOLD_VH / HERO_PHONE_SEGMENT_VH;
       const coverDuration = HERO_COVER_VH / HERO_PHONE_SEGMENT_VH;
       const peekIndex = HERO_PHONE_KEYFRAMES.findIndex((k) => k.id === 'scroll-6-peek');
       const peekTweenStart = Math.max(peekIndex - 1, 0);
-      // Timeline ends at peek + hold + reveal + cover; pin distance matches in px.
       const afterPeek = peekIndex;
-      const pinDistance = () => heroPinVh() * window.innerHeight;
+      const pinDistance = () => heroPinVh(false) * window.innerHeight;
+      const phoneUiEnd = afterPeek + holdDuration;
+      const phoneUiScrubDuration = phoneUiEnd - PHONE_UI_START;
 
       ctx = gsap.context(() => {
         const tl = gsap.timeline({
           scrollTrigger: {
             trigger: track,
             pin: sticky,
-            // Spacer after the stage so unpin does not jump; remaining stage
-            // height below the fold then scrolls naturally (phone bottom + text).
             pinSpacing: true,
             start: 'top top',
             end: () => `+=${pinDistance()}`,
             scrub: 0.8,
             invalidateOnRefresh: true,
             onRefresh: () => {
-              sticky.style.height = `${heroStickyVh() * 100}vh`;
+              sticky.style.height = `${heroStickyVh(false) * 100}vh`;
             },
           },
         });
+
+        attachPhoneUi(tl, phoneUiScrubDuration);
 
         for (let i = 1; i <= peekIndex; i++) {
           tl.to(
@@ -296,14 +413,13 @@ export function useHeroPhonePullback({
           );
         }
 
-        // hero-bg: viewport full-bleed through Scroll 5; fills phone at peek.
         tl.to(
           scroll1Image,
           {
             duration: 1,
             ease: 'none',
             immediateRender: false,
-            ...imageBoxVars(HERO_PHONE_KEYFRAMES[1]),
+            ...imageBoxVarsDesktop(HERO_PHONE_KEYFRAMES[1]),
           },
           0,
         );
@@ -314,7 +430,7 @@ export function useHeroPhonePullback({
               duration: 1,
               ease: 'none',
               immediateRender: false,
-              ...imageBoxVars(HERO_PHONE_KEYFRAMES[i]),
+              ...imageBoxVarsDesktop(HERO_PHONE_KEYFRAMES[i]),
             },
             i - 1,
           );
@@ -324,13 +440,8 @@ export function useHeroPhonePullback({
           tl.to(phoneChrome, { opacity: 1, duration: 0.75, ease: 'none' }, 0.08);
         }
 
-        // Hide Scroll pill at the very start of scrub (before phone transition).
         if (scrollIndicator) {
-          tl.to(
-            scrollIndicator,
-            { opacity: 0, duration: 0.2, ease: 'none' },
-            0,
-          );
+          tl.to(scrollIndicator, { opacity: 0, duration: 0.2, ease: 'none' }, 0);
         }
 
         if (bgFinal) {
@@ -338,12 +449,29 @@ export function useHeroPhonePullback({
         }
 
         if (copyIntro) {
-          // Hold until phone top sits just under the header (scroll-3 / t≈1.5),
-          // then fade — timing only; duration/easing unchanged.
-          tl.to(
+          // Scale immediately; opacity delayed — fixed in place (no Y drift).
+          tl.fromTo(
             copyIntro,
-            { opacity: 0, y: -16, duration: 0.4, ease: 'none' },
-            1.5,
+            { scale: 1, y: 0, transformOrigin: 'center center' },
+            {
+              scale: COPY_INTRO_SCALE_END,
+              y: 0,
+              duration: COPY_INTRO_SCALE_DURATION,
+              ease: 'none',
+              immediateRender: false,
+            },
+            COPY_INTRO_SCALE_START,
+          );
+          tl.fromTo(
+            copyIntro,
+            { opacity: 1 },
+            {
+              opacity: 0,
+              duration: COPY_INTRO_OPACITY_DURATION,
+              ease: 'none',
+              immediateRender: false,
+            },
+            COPY_INTRO_OPACITY_START,
           );
         }
         if (copySharpness) {
@@ -360,7 +488,6 @@ export function useHeroPhonePullback({
           );
         }
         if (copyFinal) {
-          // Fade in at peek; stays put — exits with the stage on post-pin scroll.
           tl.fromTo(
             copyFinal,
             { opacity: 0, y: 14 },
@@ -369,49 +496,285 @@ export function useHeroPhonePullback({
           );
         }
 
-        // Freeze at peek size/position; hold → reveal full phone → full-hold → cover.
-        // Re-assert locked size so scrub overshoot cannot shrink past peek.
-        // Reveal shifts the pinned stage up by the below-fold overflow so the
-        // phone bottom enters view before Banners (−100vh) begin covering.
-        // Peek layout ratios stay unchanged; coverDuration / banners CSS untouched.
         tl.call(
           () => {
-            applyLayout(phone, peek, finalPhoneSize(window.innerHeight));
-            setImageBox(peek, true);
+            applyLayout(phone, peek, finalPhoneSize(window.innerHeight, false));
+            setImageBoxDesktop(peek, true);
           },
           undefined,
           afterPeek,
         );
         tl.to({}, { duration: holdDuration }, afterPeek);
-        // Shift pinned stage by the below-fold overflow (+ pad) so the phone
-        // bottom clears the viewport before Banners begin covering.
         tl.fromTo(
           sticky,
           { y: 0 },
           {
-            y: () => -heroPhoneRevealScrollVh() * window.innerHeight,
+            y: () => -heroPhoneRevealScrollVh(false) * window.innerHeight,
             duration: revealDuration,
             ease: 'none',
             immediateRender: false,
           },
         );
-        // Brief hold with the full phone on-screen before Block 2 cover.
         tl.to({}, { duration: fullHoldDuration });
         tl.to({}, { duration: coverDuration });
       }, track);
+    };
+
+    /** Mobile / portrait-tablet timeline — isolated from desktop helpers. */
+    const buildMobileScrub = () => {
+      const keyframes = getHeroPhoneKeyframes(true);
+      const peek = peekKeyframe(true);
+      setScrubLayout(true);
+      applyLayout(phone, keyframes[0]);
+
+      if (bgBeige) gsap.set(bgBeige, { opacity: 1 });
+      if (bgFinal) gsap.set(bgFinal, { opacity: 0 });
+      if (copyIntro) {
+        gsap.set(copyIntro, {
+          opacity: 1,
+          scale: 1,
+          y: 0,
+          transformOrigin: 'center center',
+        });
+      }
+      if (scrollIndicator) gsap.set(scrollIndicator, { opacity: 1, transition: 'none' });
+      if (copySharpness) gsap.set(copySharpness, { opacity: 0, y: 0 });
+      if (copyFinal) gsap.set(copyFinal, { opacity: 0, y: 0 });
+      if (phoneChrome) gsap.set(phoneChrome, { opacity: 0 });
+      setImageBoxMobile(keyframes[0]);
+      resetPhoneUi();
+
+      const holdDuration = HERO_PHONE_HOLD_VH / HERO_PHONE_SEGMENT_VH;
+      const revealDuration = heroPhoneRevealScrollVh(true) / HERO_PHONE_SEGMENT_VH;
+      const fullHoldDuration = HERO_PHONE_FULL_HOLD_VH / HERO_PHONE_SEGMENT_VH;
+      const coverDuration = HERO_COVER_VH / HERO_PHONE_SEGMENT_VH;
+      const peekIndex = keyframes.findIndex((k) => k.id === 'scroll-6-peek');
+      const sharpnessRingStart = phoneUiSharpnessRingScrubTime(
+        PHONE_UI_START,
+        PHONE_UI_PHASE12_DURATION,
+      );
+      const dropEnd = sharpnessRingStart + 1;
+      const meetHoldEnd = dropEnd + MEET_SHARPNESS_HOLD;
+      const phoneSegmentStart = (segmentIndex: number) => {
+        if (segmentIndex === PHONE_DROP_SEGMENT) return sharpnessRingStart;
+        if (segmentIndex === PHONE_PEEK_SEGMENT) return meetHoldEnd;
+        return segmentIndex;
+      };
+      const peekTweenStart = phoneSegmentStart(PHONE_PEEK_SEGMENT);
+      const afterPeek = meetHoldEnd + 1;
+      const phoneDropOffset = afterPeek - peekIndex;
+      const phoneUiEnd = afterPeek + holdDuration;
+      const phoneUiScrubDuration = phoneUiEnd - PHONE_UI_START;
+      const pinDistance = () =>
+        (heroPinVh(true) + phoneDropOffset * HERO_PHONE_SEGMENT_VH) * window.innerHeight;
+
+      ctx = gsap.context(() => {
+        const tl = gsap.timeline({
+          scrollTrigger: {
+            trigger: track,
+            pin: sticky,
+            pinSpacing: true,
+            start: 'top top',
+            end: () => `+=${pinDistance()}`,
+            scrub: 0.8,
+            invalidateOnRefresh: true,
+            onRefresh: () => {
+              sticky.style.height = `${heroStickyVh(true) * 100}vh`;
+            },
+          },
+        });
+
+        attachPhoneUi(tl, phoneUiScrubDuration);
+
+        for (let i = 1; i <= peekIndex; i++) {
+          tl.to(
+            phone,
+            {
+              duration: 1,
+              ease: 'none',
+              immediateRender: false,
+              ...sizeVars(keyframes[i]),
+            },
+            phoneSegmentStart(i - 1),
+          );
+        }
+
+        tl.to(
+          scroll1Image,
+          {
+            duration: 1,
+            ease: 'none',
+            immediateRender: false,
+            ...imageBoxVarsMobile(keyframes[1]),
+          },
+          0,
+        );
+        for (let i = 2; i <= peekIndex; i++) {
+          tl.to(
+            scroll1Image,
+            {
+              duration: 1,
+              ease: 'none',
+              immediateRender: false,
+              ...imageBoxVarsMobile(keyframes[i]),
+            },
+            phoneSegmentStart(i - 1),
+          );
+        }
+
+        if (phoneChrome) {
+          tl.to(phoneChrome, { opacity: 1, duration: 0.75, ease: 'none' }, 0.08);
+        }
+
+        if (scrollIndicator) {
+          tl.to(scrollIndicator, { opacity: 0, duration: 0.2, ease: 'none' }, 0);
+        }
+
+        if (bgFinal) {
+          tl.to(bgFinal, { opacity: 1, duration: 0.7, ease: 'none' }, peekTweenStart);
+        }
+
+        if (copyIntro) {
+          tl.fromTo(
+            copyIntro,
+            { scale: 1, y: 0, transformOrigin: 'center center' },
+            {
+              scale: COPY_INTRO_SCALE_END,
+              y: 0,
+              duration: COPY_INTRO_SCALE_DURATION,
+              ease: 'none',
+              immediateRender: false,
+            },
+            COPY_INTRO_SCALE_START,
+          );
+          tl.fromTo(
+            copyIntro,
+            { opacity: 1 },
+            {
+              opacity: 0,
+              duration: COPY_INTRO_OPACITY_DURATION,
+              ease: 'none',
+              immediateRender: false,
+            },
+            COPY_INTRO_OPACITY_START,
+          );
+        }
+        if (copySharpness) {
+          tl.fromTo(
+            copySharpness,
+            { opacity: 0, y: 0 },
+            { opacity: 1, y: 0, duration: 0.55, ease: 'none' },
+            sharpnessRingStart,
+          );
+          tl.to(
+            copySharpness,
+            { opacity: 0, y: 0, duration: COPY_HANDOFF_DURATION, ease: 'none' },
+            meetHoldEnd,
+          );
+        }
+        if (copyFinal) {
+          tl.fromTo(
+            copyFinal,
+            { opacity: 0, y: 0 },
+            { opacity: 1, y: 0, duration: COPY_HANDOFF_DURATION, ease: 'none' },
+            meetHoldEnd,
+          );
+        }
+
+        tl.call(
+          () => {
+            applyLayout(phone, peek, finalPhoneSize(window.innerHeight, true));
+            setImageBoxMobile(peek, true);
+          },
+          undefined,
+          afterPeek,
+        );
+        tl.to({}, { duration: holdDuration }, afterPeek);
+        if (revealDuration > 0) {
+          tl.fromTo(
+            sticky,
+            { y: 0 },
+            {
+              y: () => -heroPhoneRevealScrollVh(true) * window.innerHeight,
+              duration: revealDuration,
+              ease: 'none',
+              immediateRender: false,
+            },
+          );
+        }
+        tl.to({}, { duration: fullHoldDuration });
+        tl.to({}, { duration: coverDuration });
+      }, track);
+    };
+
+    const mount = () => {
+      ctx?.revert();
+      ctx = undefined;
+
+      const isMobile = isHeroPhoneMobileViewport();
+      applyHeroFrameAttr(isMobile);
+
+      gsap.set(phone, { opacity: 1, autoAlpha: 1 });
+
+      // Desktop / landscape tablet: HEAD gate (min-width). Mobile frame always scrubs.
+      const canScrubDesktop = enabled && desktopWidthMq.matches && !motionMq.matches;
+      const canScrubMobile = enabled && isMobile && !motionMq.matches;
+
+      if (isMobile) {
+        if (!canScrubMobile) {
+          setRestingLayout();
+          applyLayout(phone, peekKeyframe(true), finalPhoneSize(window.innerHeight, true));
+          if (bgBeige) gsap.set(bgBeige, { opacity: 1 });
+          if (bgFinal) gsap.set(bgFinal, { opacity: 1 });
+          if (copyIntro) gsap.set(copyIntro, { opacity: 0, scale: COPY_INTRO_SCALE_END, y: 0 });
+          if (scrollIndicator) gsap.set(scrollIndicator, { opacity: 0 });
+          if (copySharpness) gsap.set(copySharpness, { opacity: 0, y: 0 });
+          if (copyFinal) gsap.set(copyFinal, { opacity: 0, y: 0 });
+          if (phoneChrome) gsap.set(phoneChrome, { opacity: 1 });
+          setImageBoxMobile(peekKeyframe(true), true);
+          requestAnimationFrame(() => {
+            const phoneUi = readPhoneUi();
+            if (phoneUi) setPhoneUiFinal(phoneUi);
+          });
+          return;
+        }
+        buildMobileScrub();
+      } else {
+        if (!canScrubDesktop) {
+          setRestingLayout();
+          applyLayout(phone, peekKeyframe(false), finalPhoneSize(window.innerHeight, false));
+          if (bgBeige) gsap.set(bgBeige, { opacity: 1 });
+          if (bgFinal) gsap.set(bgFinal, { opacity: 1 });
+          if (copyIntro) gsap.set(copyIntro, { opacity: 0, scale: COPY_INTRO_SCALE_END, y: 0 });
+          if (scrollIndicator) gsap.set(scrollIndicator, { opacity: 0 });
+          if (copySharpness) gsap.set(copySharpness, { opacity: 0, y: 0 });
+          if (copyFinal) gsap.set(copyFinal, { opacity: 0, y: 0 });
+          if (phoneChrome) gsap.set(phoneChrome, { opacity: 1 });
+          setImageBoxDesktop(peekKeyframe(false), true);
+          requestAnimationFrame(() => {
+            const phoneUi = readPhoneUi();
+            if (phoneUi) setPhoneUiFinal(phoneUi);
+          });
+          return;
+        }
+        buildDesktopScrub();
+      }
 
       ScrollTrigger.refresh();
     };
 
     mount();
-    desktopMq.addEventListener('change', mount);
+    desktopWidthMq.addEventListener('change', mount);
+    orientationMq.addEventListener('change', mount);
     motionMq.addEventListener('change', mount);
 
     return () => {
-      desktopMq.removeEventListener('change', mount);
+      desktopWidthMq.removeEventListener('change', mount);
+      orientationMq.removeEventListener('change', mount);
       motionMq.removeEventListener('change', mount);
       ctx?.revert();
       clearScrubLayout();
+      delete track.dataset.heroFrame;
     };
   }, [enabled, minWidth]);
 
@@ -421,6 +784,7 @@ export function useHeroPhonePullback({
     phoneRef,
     phoneChromeRef,
     scroll1ImageRef,
+    phoneHomeUiRef,
     bgBeigeRef,
     bgFinalRef,
     copyIntroRef,

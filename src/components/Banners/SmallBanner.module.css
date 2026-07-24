@@ -12,7 +12,8 @@
   border-radius: var(--radius-banner-mobile);
   /* Hard clip to the same radius — survives mid-animation transforms. */
   clip-path: inset(0 round var(--radius-banner-mobile));
-  aspect-ratio: 443 / 581;
+  /* Figma Mobile Block 2 sm banners — 355×520 */
+  aspect-ratio: 355 / 520;
   padding: var(--space-md);
   isolation: isolate;
 }
@@ -28,6 +29,8 @@
   .card {
     border-radius: var(--radius-lg);
     clip-path: inset(0 round var(--radius-lg));
+    /* Desktop sm banner frame (pre-existing). */
+    aspect-ratio: 443 / 581;
     padding: 2.25rem; /* 36px — Figma "sm banner 1" / "sm banner 2" desktop padding */
   }
 
@@ -110,9 +113,8 @@
 
 /*
  * NOTE: deliberately not composing `bodyText` here — same cascade-ordering
- * hazard as BigBanner's `.title` (see that file). Declared inline per
- * Figma's "Desktop/Heading 4 — 18" spec: Suisse Intl Book (450), 18px,
- * line-height 1.1.
+ * hazard as BigBanner's `.title` (see that file). Declared inline:
+ * Suisse Intl Book (450), line-height 1.1. Mobile stays 18px; desktop 22px.
  */
 .titleDark {
   font-family: var(--font-body);
@@ -128,6 +130,13 @@
   font-size: var(--fs-banner-title-sm);
   line-height: 1.1;
   color: var(--color-cream);
+}
+
+@media (min-width: 768px) {
+  .titleDark,
+  .titleLight {
+    font-size: 1.375rem; /* 22px desktop only */
+  }
 }
 
 .descriptionDark {

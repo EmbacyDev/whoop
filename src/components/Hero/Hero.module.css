@@ -64,6 +64,8 @@
  * #05252b on this box painted through that fringe as a hairline under the
  * device — keep the box transparent and clip a couple CSS px inside the pad.
  * Opaque fill lives on `.phoneScreen` (sized inside the bezel at peek).
+ *
+ * Desktop base = git HEAD. Mobile / portrait-tablet overrides via [data-hero-frame].
  */
 .phone {
   position: absolute;
@@ -77,6 +79,7 @@
   clip-path: inset(0 1px 2px 1px round 18% / 9%);
   will-change: width, height, top, left;
   pointer-events: none;
+  isolation: isolate;
 }
 
 /*
@@ -111,11 +114,26 @@
   pointer-events: none;
 }
 
+/*
+ * In-phone UI sits above hero-bg. The layer itself stays transparent until
+ * the scrubbed PhoneHomeUI timeline reveals it at PHONE_UI_START (scroll-3).
+ */
+.phoneHomeUiLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  padding: 1.5% 2.5%;
+  box-sizing: border-box;
+  overflow: hidden;
+  border-radius: 11%;
+}
+
 /* Frame fades in over screen media; Dynamic Island is part of the PNG. */
 .phoneChrome {
   position: absolute;
   inset: 0;
-  z-index: 2;
+  z-index: 5;
   opacity: 0;
 }
 
@@ -148,6 +166,7 @@
   height: 100vh;
   height: 100dvh;
   will-change: opacity, transform;
+  transform-origin: center center;
 }
 
 .copySharpness,
@@ -156,6 +175,14 @@
   inset: 0;
   opacity: 0;
   will-change: opacity, transform;
+}
+
+/*
+ * Meet Sharpness / Dynamic score — desktop top under the header (HEAD + 20px).
+ */
+.copySharpness .headingSecondary,
+.copyFinal .headingSecondary {
+  top: calc(var(--hero-header-height) + 1.5rem + 20px);
 }
 
 .copyIntro .indicator {
@@ -182,6 +209,7 @@
   padding-inline: var(--gutter);
   opacity: 0;
   transform: translateY(calc(-50% + 16px));
+  transform-origin: center center;
   transition:
     opacity var(--duration-slow) var(--ease-standard),
     transform var(--duration-slow) var(--ease-standard);
@@ -228,23 +256,51 @@
   transform: translate(-50%, 0);
 }
 
+/*
+ * Mobile-frame video crop only — set by JS `data-hero-frame` from
+ * `isHeroPhoneMobileViewport` (phones + portrait tablets). Never applies on
+ * desktop / landscape tablet (`data-hero-frame="desktop"`).
+ */
+.heroTrack[data-hero-frame='mobile'] .phone {
+  clip-path: inset(0 1px 1px 1px round 18% / 9%);
+}
+
+.heroTrack[data-hero-frame='mobile'] .phoneScreen {
+  border-radius: 18% / 9%;
+}
+
+.heroTrack[data-hero-frame='mobile'] .phoneScreen video {
+  object-position: left center;
+}
+
+/* Phone CSS width only — typography / spacing; does not touch desktop. */
 @media (max-width: 767px) {
-  .heroTrack {
-    height: 100vh;
-    height: 100dvh;
+  .title {
+    top: calc(
+      var(--hero-header-height) + (100% - var(--hero-header-height)) / 2 - 20px
+    );
   }
 
-  .phone {
-    width: min(70vw, 17rem);
-    height: auto;
-    aspect-ratio: 317 / 646;
-    left: 50%;
-    top: 58%;
-    transform: translate(-50%, -50%);
+  .copySharpness .headingSecondary,
+  .copyFinal .headingSecondary {
+    --phone-lock-top: calc((0.209 + 80 / 812) * 100vh);
+    width: calc(100% - 2rem);
+    max-width: 21.4375rem; /* 343px */
+    font-size: 1.375rem; /* Mobile/Heading 2 — 22 */
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+    text-wrap: balance;
   }
 
-  .headingSecondary {
-    top: calc(var(--hero-header-height) + 2.5rem);
-    font-size: 1.375rem;
+  .copySharpness .headingSecondary {
+    top: calc(var(--phone-lock-top) - 15px - 3lh);
+  }
+
+  .copyFinal .headingSecondary {
+    top: calc(var(--phone-lock-top) - 30px - 4lh);
+  }
+
+  .indicator {
+    bottom: clamp(4rem, 18vh, 8rem);
   }
 }

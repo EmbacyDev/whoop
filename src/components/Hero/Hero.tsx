@@ -1,6 +1,7 @@
 import heroBg from '../../assets/images/hero-bg.mp4';
 import iphone from '../../assets/images/iphone.png';
 import { useHeroPhonePullback } from '../../hooks/useHeroPhonePullback';
+import { PhoneHomeUI } from './PhoneHomeUI/PhoneHomeUI';
 import { ScrollIndicator } from './ScrollIndicator/ScrollIndicator';
 import styles from './Hero.module.css';
 
@@ -13,10 +14,13 @@ type HeroProps = {
  * Hero + Figma Scroll 1→6 camera pull-back.
  *
  * Layer order (same phone coordinate space):
- *   phoneScreen (video, opaque fill, GSAP full-bleed) → iphone.png chrome on top.
+ *   phoneScreen (video, GSAP full-bleed) → PhoneHomeUI (phone-local) → iphone.png chrome.
  * Scroll 1: phoneScreen is viewport-sized in phone-local coords while chrome is
  * hidden. Later the phone shrinks over that same crop — a window into Scroll 1
  * framing (corner trees stay), not a portrait re-cover of the 16:9 video.
+ * In-phone UI is a sibling of phoneScreen so it tracks the phone frame, not the
+ * full-bleed media box, and is scroll-scrubbed from the screenshot pose
+ * (PHONE_UI_START / scroll-3) through peek hold (calendar morph completes).
  */
 export function Hero({ revealed }: HeroProps) {
   const {
@@ -25,6 +29,7 @@ export function Hero({ revealed }: HeroProps) {
     phoneRef,
     phoneChromeRef,
     scroll1ImageRef,
+    phoneHomeUiRef,
     bgBeigeRef,
     bgFinalRef,
     copyIntroRef,
@@ -61,6 +66,11 @@ export function Hero({ revealed }: HeroProps) {
                 />
               </div>
 
+              {/* Figma 1301:4 → 1323:4 continuous in-phone UI (not the full-bleed media). */}
+              <div className={styles.phoneHomeUiLayer}>
+                <PhoneHomeUI ref={phoneHomeUiRef} />
+              </div>
+
               {/* Frame fades in on top; display hole + Dynamic Island come from the PNG. */}
               <div className={styles.phoneChrome} ref={phoneChromeRef}>
                 <img
@@ -93,11 +103,8 @@ export function Hero({ revealed }: HeroProps) {
 
             <div className={styles.copyFinal} ref={copyFinalRef}>
               <p className={styles.headingSecondary}>
-                Dynamic score that translates your daily biometrics
-                <br />
-                into mental readiness. Know your capacity
-                <br />
-                before you start your day.
+                Dynamic score that translates your daily biometrics into mental
+                readiness. Know your capacity before you start your day.
               </p>
             </div>
           </div>

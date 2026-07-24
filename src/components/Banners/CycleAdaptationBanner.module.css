@@ -7,7 +7,7 @@
   display: none;
 }
 
-.mobileImage {
+.mobileVideo {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -42,7 +42,7 @@
     will-change: transform;
   }
 
-  .mobileImage {
+  .mobileVideo {
     display: none;
   }
 }

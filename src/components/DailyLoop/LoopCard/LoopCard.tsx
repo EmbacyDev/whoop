@@ -37,6 +37,62 @@ function radiusForFaceHeight(faceHeight: number) {
   return faceHeight / (2 * Math.sin(FACE_ANGLE_RAD / 2));
 }
 
+type LoopFaceProps = {
+  state: DailyLoopState;
+  isFront: boolean;
+  faceStyle: CSSProperties;
+};
+
+/** Keeps background video playing only on the visible face (incl. reverse steps). */
+function LoopFace({ state, isFront, faceStyle }: LoopFaceProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (isFront) {
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          /* Autoplay may be blocked until the next user gesture. */
+        });
+      }
+      return;
+    }
+
+    video.pause();
+  }, [isFront, state.video]);
+
+  return (
+    <div
+      className={styles.face}
+      aria-hidden={!isFront}
+      style={faceStyle}
+    >
+      <video
+        ref={videoRef}
+        className={styles.video}
+        src={state.video}
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
+        controls={false}
+        disablePictureInPicture
+        aria-hidden="true"
+      />
+      <img
+        className={styles.overlay}
+        src={state.overlay}
+        alt={isFront ? state.imageAlt : ''}
+        draggable={false}
+      />
+    </div>
+  );
+}
+
 /**
  * Hexagonal-prism carousel.
  *
@@ -60,13 +116,15 @@ export function LoopCard({
   const [prismRadius, setPrismRadius] = useState(360);
   const inPrism = prismPhase === 'compress' || prismPhase === 'rotate';
   const effectiveRadius = prismRadius * prismRadiusScale;
-  // Compress keeps displayIndex on the departing face; expand uses destination.
+  // At rest only the committed face is visible; during cycles use scrollIndex.
   const frontIndex =
-    prismPhase === 'expand' ? activeIndex : Math.trunc(scrollIndex);
+    prismPhase === 'rest' || prismPhase === 'expand'
+      ? activeIndex
+      : Math.trunc(scrollIndex);
 
   const faceOpacity = (index: number) => {
     if (prismPhase === 'rest') {
-      return Math.abs(index - scrollIndex) < 0.5 ? 1 : 0;
+      return index === activeIndex ? 1 : 0;
     }
     if (prismPhase === 'compress') {
       if (index === frontIndex) return 1;
@@ -129,22 +187,16 @@ export function LoopCard({
                   'scaleY(1.004)',
                 ].join(' '),
                 opacity,
+                visibility: isFront ? 'visible' : 'hidden',
               };
 
               return (
-                <div
+                <LoopFace
                   key={state.id}
-                  className={styles.face}
-                  aria-hidden={!isFront}
-                  style={faceStyle}
-                >
-                  <img
-                    className={styles.image}
-                    src={state.image}
-                    alt={isFront ? state.imageAlt : ''}
-                    draggable={false}
-                  />
-                </div>
+                  state={state}
+                  isFront={isFront}
+                  faceStyle={faceStyle}
+                />
               );
             })}
           </div>

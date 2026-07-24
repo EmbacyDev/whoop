@@ -98,19 +98,36 @@
   background: var(--color-cream-20);
 }
 
+/*
+ * Hamburger — whoop.com mobile pattern: sits to the right of Join Now.
+ * Visible below the desktop breakpoint; hidden once primary nav is shown.
+ */
 .menuToggle {
   display: inline-flex;
   flex-direction: column;
   justify-content: center;
+  align-items: stretch;
   gap: 5px;
+  flex-shrink: 0;
   width: 1.5rem;
   height: 1.5rem;
+  margin: 0;
+  margin-left: 0.25rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-cream);
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 .menuToggle span {
   display: block;
-  height: 1px;
-  background: var(--color-cream);
+  width: 100%;
+  height: 1.5px;
+  background: currentColor;
+  border-radius: 1px;
 }
 
 .mobileNav {

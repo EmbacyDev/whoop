@@ -10,7 +10,7 @@ import styles from './Banners.module.css';
 /** Matches `.headingEntrance` / `.banner` / small-card entrance duration. */
 const ENTRANCE_MS = 900;
 /** Start the large banner before the heading fully settles (overlap). */
-const HEADING_TO_BANNER_MS = 480;
+const HEADING_TO_BANNER_MS = 120;
 /** Keep small banners on-screen briefly after they leave the viewport. */
 const SMALL_EXIT_DELAY_MS = 700;
 

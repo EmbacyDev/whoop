@@ -1,39 +1,46 @@
 import { useEffect, useRef } from 'react';
 import cycleDesktopVideo from '../../assets/images/banners/cycle-adaptation-desktop.mp4';
-import cycleMobile from '../../assets/images/banners/cycle-adaptation-mobile.jpg';
+import cycleMobileVideo from '../../assets/images/banners/cycle-adaptation-mobile.mp4';
 import { useParallax } from '../../hooks/useParallax';
 import { useRevealOnScroll } from '../../hooks/useRevealOnScroll';
 import shared from './SmallBanner.module.css';
 import styles from './CycleAdaptationBanner.module.css';
 
 type CycleAdaptationBannerProps = {
-  /** When set (desktop stagger), bypass the local one-shot reveal observer. */
+  /** When set (stagger from Banners), bypass the local one-shot reveal observer. */
   forceVisible?: boolean;
 };
 
+const DESKTOP_MQ = '(min-width: 768px)';
+
 /**
- * "Cycle Adaptation" — desktop plays cycle-adaptation-desktop.mp4 once per
- * viewport visit (holds the last frame); mobile keeps the static photo.
- * The desktop video gets a subtle scroll parallax; card/text stay fixed.
+ * "Cycle Adaptation" — plays the breakpoint MP4 once per viewport visit
+ * (holds the last frame). Desktop video gets a subtle scroll parallax;
+ * card/text stay fixed.
  */
 export function CycleAdaptationBanner({ forceVisible }: CycleAdaptationBannerProps = {}) {
   const { ref: revealRef, isVisible } = useRevealOnScroll<HTMLDivElement>();
   const cardRef = useRef<HTMLDivElement>(null);
   // Keep parallax small so framing can stay near 1:1 with the card (no heavy bleed zoom).
-  const videoRef = useParallax<HTMLVideoElement>(8);
+  const desktopVideoRef = useParallax<HTMLVideoElement>(8);
+  const mobileVideoRef = useRef<HTMLVideoElement>(null);
   const playedThisEntryRef = useRef(false);
   const visible = forceVisible || isVisible;
 
   useEffect(() => {
     const card = cardRef.current;
-    const video = videoRef.current;
-    if (!card || !video) return;
+    const desktopVideo = desktopVideoRef.current;
+    const mobileVideo = mobileVideoRef.current;
+    if (!card || !desktopVideo || !mobileVideo) return;
 
-    // Desktop-only media; mobile uses the static <img>.
-    const desktopMq = window.matchMedia('(min-width: 768px)');
+    const desktopMq = window.matchMedia(DESKTOP_MQ);
     let cancelled = false;
 
+    const activeVideo = () => (desktopMq.matches ? desktopVideo : mobileVideo);
+    const idleVideo = () => (desktopMq.matches ? mobileVideo : desktopVideo);
+
     const holdFinalFrame = () => {
+      const video = activeVideo();
       video.pause();
       if (Number.isFinite(video.duration) && video.duration > 0) {
         try {
@@ -44,8 +51,7 @@ export function CycleAdaptationBanner({ forceVisible }: CycleAdaptationBannerPro
       }
     };
 
-    const resetAfterExit = () => {
-      playedThisEntryRef.current = false;
+    const resetVideo = (video: HTMLVideoElement) => {
       video.pause();
       try {
         video.currentTime = 0;
@@ -54,10 +60,17 @@ export function CycleAdaptationBanner({ forceVisible }: CycleAdaptationBannerPro
       }
     };
 
+    const resetAfterExit = () => {
+      playedThisEntryRef.current = false;
+      resetVideo(desktopVideo);
+      resetVideo(mobileVideo);
+    };
+
     const start = async () => {
       if (cancelled || playedThisEntryRef.current) return;
-      if (!desktopMq.matches) return;
       playedThisEntryRef.current = true;
+      const video = activeVideo();
+      resetVideo(idleVideo());
       try {
         video.currentTime = 0;
       } catch {
@@ -70,7 +83,8 @@ export function CycleAdaptationBanner({ forceVisible }: CycleAdaptationBannerPro
       }
     };
 
-    video.addEventListener('ended', holdFinalFrame);
+    desktopVideo.addEventListener('ended', holdFinalFrame);
+    mobileVideo.addEventListener('ended', holdFinalFrame);
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -89,8 +103,10 @@ export function CycleAdaptationBanner({ forceVisible }: CycleAdaptationBannerPro
     observer.observe(card);
 
     const onBreakpoint = () => {
-      if (!desktopMq.matches) {
-        resetAfterExit();
+      resetVideo(idleVideo());
+      if (playedThisEntryRef.current) {
+        playedThisEntryRef.current = false;
+        void start();
       }
     };
     desktopMq.addEventListener('change', onBreakpoint);
@@ -99,29 +115,38 @@ export function CycleAdaptationBanner({ forceVisible }: CycleAdaptationBannerPro
       cancelled = true;
       observer.disconnect();
       desktopMq.removeEventListener('change', onBreakpoint);
-      video.removeEventListener('ended', holdFinalFrame);
-      video.pause();
+      desktopVideo.removeEventListener('ended', holdFinalFrame);
+      mobileVideo.removeEventListener('ended', holdFinalFrame);
+      desktopVideo.pause();
+      mobileVideo.pause();
       playedThisEntryRef.current = false;
     };
-  }, [videoRef]);
+  }, [desktopVideoRef]);
 
   return (
     <div className={styles.card} ref={cardRef}>
       <div className={shared.imageReveal} ref={revealRef} data-visible={visible}>
         <video
-          ref={videoRef}
+          ref={desktopVideoRef}
           className={styles.desktopVideo}
           src={cycleDesktopVideo}
           muted
           playsInline
           preload="auto"
+          controls={false}
+          disablePictureInPicture
           aria-hidden="true"
         />
-        <img
-          className={styles.mobileImage}
-          src={cycleMobile}
-          alt="A hand reaching down from a wrist wearing WHOOP, with HRV and Deep Sleep readings and an AI Assessment of Well Recovered"
-          draggable={false}
+        <video
+          ref={mobileVideoRef}
+          className={styles.mobileVideo}
+          src={cycleMobileVideo}
+          muted
+          playsInline
+          preload="auto"
+          controls={false}
+          disablePictureInPicture
+          aria-hidden="true"
         />
       </div>
       <div className={shared.overlay} />

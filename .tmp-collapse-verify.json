@@ -1,0 +1,130 @@
+{
+  "collapseMid": {
+    "y": 1620,
+    "sleepOp": 0.492,
+    "sleepCx": 670.1,
+    "strainCx": 767.9,
+    "sharpOp": 0,
+    "sharpText": "0%Sharpness",
+    "visible": [
+      "sleep",
+      "recovery",
+      "strain"
+    ],
+    "fourRingMess": false,
+    "clipOk": true
+  },
+  "handoff": {
+    "y": 1700,
+    "sleepOp": 0.005,
+    "sleepCx": 719.7,
+    "strainCx": 720.3,
+    "sharpOp": 0.162,
+    "sharpText": "1%Sharpness",
+    "visible": [
+      "sharpness"
+    ],
+    "fourRingMess": false,
+    "clipOk": true
+  },
+  "end": {
+    "y": 1940,
+    "sleepOp": 0,
+    "sleepCx": 719,
+    "strainCx": 719,
+    "sharpOp": 1,
+    "sharpText": "58%Sharpness",
+    "visible": [
+      "sharpness"
+    ],
+    "fourRingMess": false,
+    "clipOk": true
+  },
+  "anyFourRing": false,
+  "sweep": [
+    {
+      "y": 1500,
+      "sleepOp": 1,
+      "sleepCx": 576.5,
+      "strainCx": 862.5,
+      "sharpOp": 0,
+      "sharpText": "0%Sharpness",
+      "visible": [
+        "sleep",
+        "recovery",
+        "strain"
+      ],
+      "fourRingMess": false,
+      "clipOk": true
+    },
+    {
+      "y": 1580,
+      "sleepOp": 0.782,
+      "sleepCx": 622.6,
+      "strainCx": 816.4,
+      "sharpOp": 0,
+      "sharpText": "0%Sharpness",
+      "visible": [
+        "sleep",
+        "recovery",
+        "strain"
+      ],
+      "fourRingMess": false,
+      "clipOk": true
+    },
+    {
+      "y": 1660,
+      "sleepOp": 0.179,
+      "sleepCx": 705.5,
+      "strainCx": 732.4,
+      "sharpOp": 0,
+      "sharpText": "0%Sharpness",
+      "visible": [
+        "sleep",
+        "recovery",
+        "strain"
+      ],
+      "fourRingMess": false,
+      "clipOk": true
+    },
+    {
+      "y": 1740,
+      "sleepOp": 0,
+      "sleepCx": 720,
+      "strainCx": 720,
+      "sharpOp": 0.951,
+      "sharpText": "17%Sharpness",
+      "visible": [
+        "sharpness"
+      ],
+      "fourRingMess": false,
+      "clipOk": true
+    },
+    {
+      "y": 1820,
+      "sleepOp": 0,
+      "sleepCx": 719.5,
+      "strainCx": 719.5,
+      "sharpOp": 1,
+      "sharpText": "42%Sharpness",
+      "visible": [
+        "sharpness"
+      ],
+      "fourRingMess": false,
+      "clipOk": true
+    },
+    {
+      "y": 1900,
+      "sleepOp": 0,
+      "sleepCx": 719.5,
+      "strainCx": 719.5,
+      "sharpOp": 1,
+      "sharpText": "57%Sharpness",
+      "visible": [
+        "sharpness"
+      ],
+      "fourRingMess": false,
+      "clipOk": true
+    }
+  ]
+}

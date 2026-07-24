@@ -56,7 +56,13 @@
   will-change: transform;
 }
 
-.image {
+.face[aria-hidden='true'] {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.video,
+.overlay {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -64,7 +70,16 @@
   object-fit: cover;
   object-position: center;
   pointer-events: none;
+}
+
+.video {
+  z-index: 0;
   background-color: #111;
+}
+
+/* Transparent PNG UI layer on top of the looping background video. */
+.overlay {
+  z-index: 1;
 }
 
 .footerStack {

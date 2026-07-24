@@ -16,13 +16,112 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  pointer-events: none;
 }
 
-/* Reserved for the future Skip button (not implemented this iteration).
-   Keeping the slot here means adding it later is a drop-in, not a
-   restructure of VideoPreloader. */
+/*
+ * Figma "Video preloader" controls — centered bottom cluster:
+ * progress pill (220px) + Skip, gap 8px. ~40px from bottom on the 771 frame.
+ */
 .controls {
   position: absolute;
-  bottom: var(--space-md);
-  right: var(--space-md);
+  left: 50%;
+  bottom: max(1.5rem, 5.2vh);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem; /* 8px */
+  z-index: 1;
+}
+
+/* Progress pill — Figma Button 1342:248 */
+.progressPill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem; /* 6px */
+  width: 13.75rem; /* 220px */
+  padding: 0.5rem 0.875rem; /* 8px 14px */
+  background: var(--color-cream-20);
+  backdrop-filter: blur(var(--blur-glass));
+  -webkit-backdrop-filter: blur(var(--blur-glass));
+  border-radius: var(--radius-pill);
+}
+
+.time {
+  composes: eyebrow from '../../styles/typography.module.css';
+  flex: 0 0 auto;
+  color: var(--color-cream);
+  line-height: 1.28;
+  text-align: center;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.track {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 0.5rem; /* 8px hit + visual */
+  cursor: pointer;
+  touch-action: none;
+}
+
+.trackBase,
+.trackFill {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  height: 100%;
+  border-radius: 2.5rem; /* 40px */
+  pointer-events: none;
+}
+
+.trackBase {
+  width: 100%;
+  background: rgb(255 255 255 / 40%);
+}
+
+.trackFill {
+  background: #fff;
+}
+
+/*
+ * Skip — same ghost pill language as Hero Scroll, no bobbing animation,
+ * arrow points right (Figma "skip →").
+ */
+.skip {
+  padding-inline: 1rem; /* 16px — match ScrollIndicator */
+  gap: 0.1875rem; /* 3px */
+}
+
+.skipArrow {
+  display: inline-block;
+}
+
+/*
+ * Figma Mobile "Video preloader" (1175:10639): controls cluster 325×38 at
+ * (20, 738) on 375×812 — ~36px from bottom, progress pill 232px + Skip 85px.
+ */
+@media (max-width: 767px) {
+  .controls {
+    left: 50%;
+    bottom: max(1.25rem, 4.4vh);
+    width: min(20.3125rem, calc(100% - 2.5rem)); /* 325px */
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .progressPill {
+    flex: 1 1 auto;
+    width: auto;
+    max-width: 14.5rem; /* 232px */
+    min-width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .preloader {
+    transition: none;
+  }
 }

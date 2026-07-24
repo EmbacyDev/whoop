@@ -1,18 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import bigBannerDesktopVideo from '../../assets/images/banners/big banner_desktop.mp4';
-import bigBannerMobile from '../../assets/images/banners/big-banner-mobile.jpg';
-import { useParallax } from '../../hooks/useParallax';
+import bigBannerMobileVideo from '../../assets/images/banners/big-banner-mobile.mp4';
 import styles from './BigBanner.module.css';
 
-const PERCENT_START = 100;
-const PERCENT_END = 38;
+const PERCENT_START = 0;
+const PERCENT_END = 74;
 /** Require ~half the banner in view before starting (avoids hero cover flash). */
 const VISIBILITY_THRESHOLD = 0.5;
+const DESKTOP_MQ = '(min-width: 768px)';
 
 /**
- * Desktop MP4 graph interval (seconds) — sampled from ring-pixel change in
- * `big banner_desktop.mp4` (duration ≈ 1.667s). Countdown maps 100→38 across
- * this window only; outside it the number holds.
+ * MP4 graph interval (seconds) — count maps 0→74 across this window only;
+ * outside it the number holds. Same timing on desktop and mobile.
  */
 const GRAPH_ANIM_START_S = 0.2;
 const GRAPH_ANIM_END_S = 1.4;
@@ -22,7 +21,7 @@ function percentFromVideoTime(currentTime: number) {
   if (currentTime >= GRAPH_ANIM_END_S) return PERCENT_END;
   const t =
     (currentTime - GRAPH_ANIM_START_S) / (GRAPH_ANIM_END_S - GRAPH_ANIM_START_S);
-  return Math.round(PERCENT_START - t * (PERCENT_START - PERCENT_END));
+  return Math.round(PERCENT_START + t * (PERCENT_END - PERCENT_START));
 }
 
 type BigBannerProps = {
@@ -36,17 +35,17 @@ type BigBannerProps = {
 };
 
 /**
- * "Outsmart your burnout" — desktop plays the exported MP4 whenever the
- * banner enters the viewport (and is armed); HTML overlays the sharp
- * percentage synced to the progress-ring graph interval. Mobile keeps the
- * static photo. Exit / full-exit replay behavior is unchanged.
+ * "Outsmart your burnout" — plays the breakpoint MP4 whenever the banner
+ * enters the viewport (and is armed). HTML overlays the sharp percentage
+ * synced to the progress-ring graph interval on both desktop and mobile.
+ * Exit / full-exit replay behavior matches desktop.
  */
 export function BigBanner({
   entranceArmed = true,
   onEntranceChange,
 }: BigBannerProps = {}) {
-  const parallaxRef = useParallax<HTMLImageElement>(14);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const desktopVideoRef = useRef<HTMLVideoElement>(null);
+  const mobileVideoRef = useRef<HTMLVideoElement>(null);
   const bannerRef = useRef<HTMLDivElement>(null);
   const onEntranceChangeRef = useRef(onEntranceChange);
   onEntranceChangeRef.current = onEntranceChange;
@@ -61,11 +60,16 @@ export function BigBanner({
 
   useEffect(() => {
     const banner = bannerRef.current;
-    const video = videoRef.current;
-    if (!banner || !video) return;
+    const desktopVideo = desktopVideoRef.current;
+    const mobileVideo = mobileVideoRef.current;
+    if (!banner || !desktopVideo || !mobileVideo) return;
 
+    const desktopMq = window.matchMedia(DESKTOP_MQ);
     let cancelled = false;
     let raf = 0;
+
+    const activeVideo = () => (desktopMq.matches ? desktopVideo : mobileVideo);
+    const idleVideo = () => (desktopMq.matches ? mobileVideo : desktopVideo);
 
     const cancelTick = () => {
       cancelAnimationFrame(raf);
@@ -73,11 +77,12 @@ export function BigBanner({
     };
 
     const syncFromVideo = () => {
-      setPercent(percentFromVideoTime(video.currentTime));
+      setPercent(percentFromVideoTime(activeVideo().currentTime));
     };
 
     const tick = () => {
       syncFromVideo();
+      const video = activeVideo();
       if (!cancelled && !video.paused && !video.ended) {
         raf = requestAnimationFrame(tick);
       }
@@ -86,6 +91,7 @@ export function BigBanner({
     const holdFinalFrame = () => {
       cancelTick();
       setPercent(PERCENT_END);
+      const video = activeVideo();
       video.pause();
       if (Number.isFinite(video.duration) && video.duration > 0) {
         try {
@@ -96,15 +102,20 @@ export function BigBanner({
       }
     };
 
-    const resetAfterExit = () => {
-      playedThisEntryRef.current = false;
-      cancelTick();
+    const resetVideo = (video: HTMLVideoElement) => {
       video.pause();
       try {
         video.currentTime = 0;
       } catch {
         /* ignore */
       }
+    };
+
+    const resetAfterExit = () => {
+      playedThisEntryRef.current = false;
+      cancelTick();
+      resetVideo(desktopVideo);
+      resetVideo(mobileVideo);
       setPercent(PERCENT_START);
       setEntranceVisible(false);
       onEntranceChangeRef.current?.(false);
@@ -118,6 +129,9 @@ export function BigBanner({
       setPercent(PERCENT_START);
       setEntranceVisible(true);
       onEntranceChangeRef.current?.(true);
+
+      const video = activeVideo();
+      resetVideo(idleVideo());
       try {
         video.currentTime = 0;
       } catch {
@@ -145,8 +159,11 @@ export function BigBanner({
       void start();
     };
 
-    video.addEventListener('ended', holdFinalFrame);
-    video.addEventListener('timeupdate', syncFromVideo);
+    const onEnded = () => holdFinalFrame();
+    desktopVideo.addEventListener('ended', onEnded);
+    mobileVideo.addEventListener('ended', onEnded);
+    desktopVideo.addEventListener('timeupdate', syncFromVideo);
+    mobileVideo.addEventListener('timeupdate', syncFromVideo);
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -168,13 +185,27 @@ export function BigBanner({
     );
     observer.observe(banner);
 
+    const onBreakpoint = () => {
+      // Keep playback scoped to the visible breakpoint asset.
+      resetVideo(idleVideo());
+      if (inViewRef.current && entranceArmedRef.current && playedThisEntryRef.current) {
+        playedThisEntryRef.current = false;
+        void start();
+      }
+    };
+    desktopMq.addEventListener('change', onBreakpoint);
+
     return () => {
       cancelled = true;
       cancelTick();
       observer.disconnect();
-      video.removeEventListener('ended', holdFinalFrame);
-      video.removeEventListener('timeupdate', syncFromVideo);
-      video.pause();
+      desktopMq.removeEventListener('change', onBreakpoint);
+      desktopVideo.removeEventListener('ended', onEnded);
+      mobileVideo.removeEventListener('ended', onEnded);
+      desktopVideo.removeEventListener('timeupdate', syncFromVideo);
+      mobileVideo.removeEventListener('timeupdate', syncFromVideo);
+      desktopVideo.pause();
+      mobileVideo.pause();
       playedThisEntryRef.current = false;
       tryStartRef.current = () => {};
     };
@@ -194,19 +225,26 @@ export function BigBanner({
     >
       <div className={styles.imageReveal}>
         <video
-          ref={videoRef}
+          ref={desktopVideoRef}
           className={styles.desktopVideo}
           src={bigBannerDesktopVideo}
           muted
           playsInline
           preload="auto"
+          controls={false}
+          disablePictureInPicture
           aria-hidden="true"
         />
-        <img
-          ref={parallaxRef}
-          className={styles.mobileImage}
-          src={bigBannerMobile}
-          alt="Man resting in a chair with a laptop, eyes closed, with his Sharpness score floating beside him"
+        <video
+          ref={mobileVideoRef}
+          className={styles.mobileVideo}
+          src={bigBannerMobileVideo}
+          muted
+          playsInline
+          preload="auto"
+          controls={false}
+          disablePictureInPicture
+          aria-hidden="true"
         />
         <div className={styles.ringMetric} aria-hidden="true">
           <span className={styles.ringValue}>

@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
+import { targetStateFromScroll } from '../components/DailyLoop/dailyLoopScrollMap';
 
 type DailyLoopPinOptions = {
   stateCount: number;
   minWidth?: number;
-  /** Scroll distance (vh) to unlock each step transition. */
+  /** Scroll distance (vh) per state unit — mostly hold, short transition tail. */
   scrollPerStateVh?: number;
+  /** Share of each unit spent viewing a state when syncing from scroll position. */
+  holdFraction?: number;
   /** Extra scroll (vh) after the last state before the pin releases. */
   finalHoldVh?: number;
   /** Duration of one full compress → rotate → expand cycle (ms). */
@@ -36,7 +39,7 @@ export type DailyLoopPinState = {
   prismRadiusScale: number;
   /** 0→1 while neighboring faces assemble during compress. */
   assembleProgress: number;
-  /** 0→1 while non-destination faces dissolve during expand (1 = front only). */
+  /** 0→1 while non-destination faces fade out during expand (1 = front only). */
   dissolveProgress: number;
   /** Extra pin-track height (vh) so fast scroll cannot unpin mid-cycle. */
   extraPinVh: number;
@@ -46,36 +49,25 @@ const FACE_ANGLE = 60;
 /** Assembled prism size relative to full card (~60% of card width). */
 const PRISM_ZOOM = 0.6;
 const PRISM_RADIUS_TIGHT = 0.94;
-/** Ignore residual wheel ticks from the same gesture after a step settles. */
-const GESTURE_IDLE_MS = 180;
-/** Compress ends at 40% — scale phases breathe before/after rotate. */
-const COMPRESS_END = 0.4;
-/** Rotate ends at 62% — longer window for weighted ease-in-out. */
-const ROTATE_END = 0.62;
-/** Neighbor faces begin assembling after this fraction of compress local time. */
-const ASSEMBLE_START = 0.38;
+/** Compress ends at 20% — quick, light entry into the prism. */
+const COMPRESS_END = 0.2;
+/** Rotate ends at 50% — rotation carries most of the mid-cycle momentum. */
+const ROTATE_END = 0.5;
+/** Neighbor faces begin assembling early during compress. */
+const ASSEMBLE_START = 0.12;
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
 
-function easeOutQuint(t: number) {
-  return 1 - (1 - t) ** 5;
+/** Soft symmetric ease — natural momentum, minimal endpoint hesitation. */
+function easeInOutSine(t: number) {
+  return -(Math.cos(Math.PI * t) - 1) / 2;
 }
 
-function easeInOutCubic(t: number) {
-  return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
-}
-
-function easeInOutQuint(t: number) {
-  return t < 0.5 ? 16 * t * t * t * t * t : 1 - (-2 * t + 2) ** 5 / 2;
-}
-
-/** Heavier ease-in-out for rotation — slow start/end, fast mid. */
-function easeInOutPower(t: number, p = 6) {
-  return t < 0.5
-    ? 2 ** (p - 1) * t ** p
-    : 1 - (-2 * t + 2) ** p / 2;
+/** Gentle ease-out — fast start, soft settle (entry / exit). */
+function easeOutCubic(t: number) {
+  return 1 - (1 - t) ** 3;
 }
 
 function lerp(a: number, b: number, t: number) {
@@ -91,16 +83,16 @@ function poseForStepProgress(from: number, to: number, progress: number) {
 
   if (p <= COMPRESS_END) {
     const localT = p / COMPRESS_END;
-    const zoomT = easeInOutQuint(localT);
+    const zoomT = easeOutCubic(localT);
     const zoom = lerp(1, PRISM_ZOOM, zoomT);
 
     let assembleProgress = 0;
     if (localT > ASSEMBLE_START) {
       const assembleT = (localT - ASSEMBLE_START) / (1 - ASSEMBLE_START);
-      assembleProgress = easeInOutCubic(assembleT);
+      assembleProgress = easeInOutSine(assembleT);
     }
 
-    const radiusT = easeInOutQuint(assembleProgress);
+    const radiusT = easeInOutSine(assembleProgress);
 
     return {
       zoom,
@@ -114,9 +106,8 @@ function poseForStepProgress(from: number, to: number, progress: number) {
   }
 
   if (p <= ROTATE_END) {
-    const rotateT = easeInOutPower(
+    const rotateT = easeInOutSine(
       (p - COMPRESS_END) / (ROTATE_END - COMPRESS_END),
-      6,
     );
     return {
       zoom: PRISM_ZOOM,
@@ -130,9 +121,9 @@ function poseForStepProgress(from: number, to: number, progress: number) {
   }
 
   const localT = (p - ROTATE_END) / (1 - ROTATE_END);
-  const zoomT = easeInOutQuint(localT);
-  const dissolveT = easeOutQuint(Math.min(localT / 0.32, 1));
-  const radiusT = easeInOutQuint(localT);
+  const zoomT = easeOutCubic(localT);
+  const dissolveT = easeInOutSine(localT);
+  const radiusT = easeInOutSine(localT);
 
   return {
     zoom: lerp(PRISM_ZOOM, 1, zoomT),
@@ -148,16 +139,17 @@ function poseForStepProgress(from: number, to: number, progress: number) {
 /**
  * Sticky pin for The Daily Loop — discrete step cycles.
  *
- * Scroll only chooses the next target face. Crossing a step threshold plays
- * one full compress → rotate-one-face → expand animation. The prism is never
- * scrubbed by scroll. After the last face settles, the pin releases immediately.
+ * Wheel / trackpad scroll triggers the next step immediately (±1 face).
+ * Scroll position syncs state when re-entering the pin or scrolling back up,
+ * so reverse playback matches forward.
  */
 export function useDailyLoopPin({
   stateCount,
   minWidth = 768,
-  scrollPerStateVh = 2.4,
-  finalHoldVh = 0.25,
-  stepDurationMs = 2300,
+  scrollPerStateVh = 0.85,
+  holdFraction = 0.8,
+  finalHoldVh = 0.15,
+  stepDurationMs = 1280,
 }: DailyLoopPinOptions): DailyLoopPinState {
   const pinRef = useRef<HTMLDivElement>(null!);
   const [enabled, setEnabled] = useState(false);
@@ -182,12 +174,8 @@ export function useDailyLoopPin({
   const rafRef = useRef<number | undefined>(undefined);
   const displayIndexRef = useRef(0);
   const extraPinVhRef = useRef(0);
-  /**
-   * When false, wheel/trackpad input cannot start a new step.
-   * Stays false during a transition and until the gesture goes idle.
-   */
-  const armedRef = useRef(true);
-  const gestureIdleTimerRef = useRef<number | undefined>(undefined);
+  const pinEngagedRef = useRef(false);
+  const lastScrollYRef = useRef(0);
 
   const applyExtraPinVh = (value: number) => {
     extraPinVhRef.current = value;
@@ -216,6 +204,7 @@ export function useDailyLoopPin({
       committedRef.current = 0;
       animatingRef.current = false;
       displayIndexRef.current = 0;
+      pinEngagedRef.current = false;
       setDisplayIndex(0);
       setActiveIndex(0);
       setIsMoving(false);
@@ -226,11 +215,6 @@ export function useDailyLoopPin({
       setAssembleProgress(0);
       setDissolveProgress(1);
       applyExtraPinVh(0);
-      armedRef.current = true;
-      if (gestureIdleTimerRef.current !== undefined) {
-        window.clearTimeout(gestureIdleTimerRef.current);
-        gestureIdleTimerRef.current = undefined;
-      }
       return;
     }
 
@@ -240,25 +224,6 @@ export function useDailyLoopPin({
         rafRef.current = undefined;
       }
       animatingRef.current = false;
-    };
-
-    const clearGestureIdle = () => {
-      if (gestureIdleTimerRef.current !== undefined) {
-        window.clearTimeout(gestureIdleTimerRef.current);
-        gestureIdleTimerRef.current = undefined;
-      }
-    };
-
-    /** Disarm until wheel/trackpad input has been idle briefly. */
-    const disarmUntilGestureIdle = () => {
-      armedRef.current = false;
-      clearGestureIdle();
-      gestureIdleTimerRef.current = window.setTimeout(() => {
-        gestureIdleTimerRef.current = undefined;
-        if (!animatingRef.current) {
-          armedRef.current = true;
-        }
-      }, GESTURE_IDLE_MS);
     };
 
     const applyPose = (from: number, to: number, progress: number) => {
@@ -287,9 +252,8 @@ export function useDailyLoopPin({
       return scrolled / stepLength;
     };
 
-    /** Absolute face index from scroll — used on load / resize jump only. */
-    const readAbsoluteIndex = () => {
-      return clamp(Math.round(readScrollRaw()), 0, lastIndex);
+    const readTargetIndex = () => {
+      return targetStateFromScroll(readScrollRaw(), stateCount, holdFraction);
     };
 
     /** True while the pin track is sticky / owning scroll. */
@@ -301,10 +265,8 @@ export function useDailyLoopPin({
     };
 
     const reservePinVhForStep = (to: number) => {
-      // Keep sticky alive through the full scripted cycle even if the user
-      // scrolls quickly through the remaining pin track (especially on last step).
       const reserve =
-        to === lastIndex ? scrollPerStateVh * 2.75 : scrollPerStateVh * 1.35;
+        to === lastIndex ? scrollPerStateVh * 1.75 : scrollPerStateVh * 1.05;
       applyExtraPinVh(reserve);
     };
 
@@ -321,10 +283,7 @@ export function useDailyLoopPin({
       setDissolveProgress(1);
       setIsMoving(false);
       animatingRef.current = false;
-      // Release extra pin immediately — next scroll leaves the section.
       applyExtraPinVh(0);
-      // Do not auto-chain steps from scroll position. Wait for a new gesture.
-      disarmUntilGestureIdle();
     };
 
     const playStep = (from: number, to: number) => {
@@ -333,8 +292,6 @@ export function useDailyLoopPin({
         return;
       }
 
-      armedRef.current = false;
-      clearGestureIdle();
       cancelAnim();
       animatingRef.current = true;
       setIsMoving(true);
@@ -361,21 +318,30 @@ export function useDailyLoopPin({
     };
 
     /**
-     * One wheel / trackpad gesture → exactly one card (±1).
-     * Same threshold both directions. Extra events ignored until the cycle
-     * finishes and the gesture goes idle.
+     * Step toward scroll-mapped target when scrolling up or re-entering the pin.
+     * Never auto-advances forward — wheel drives forward steps only.
+     */
+    const syncFromScrollPosition = (allowForward = false) => {
+      if (!isPinEngaged() || animatingRef.current) return;
+
+      const committed = committedRef.current;
+      const target = readTargetIndex();
+      if (target < committed) {
+        playStep(committed, committed - 1);
+      } else if (allowForward && target > committed) {
+        playStep(committed, committed + 1);
+      }
+    };
+
+    /**
+     * Wheel / trackpad: one gesture → one face, immediately.
+     * Forward and reverse use the same path.
      */
     const onWheel = (event: WheelEvent) => {
-      if (!isPinEngaged()) return;
-
-      // Keep the current gesture disarmed while ticks keep arriving.
-      if (animatingRef.current || !armedRef.current) {
-        disarmUntilGestureIdle();
-        return;
-      }
+      if (!isPinEngaged() || animatingRef.current) return;
 
       const dy = event.deltaY;
-      if (Math.abs(dy) < 6) return;
+      if (Math.abs(dy) < 4) return;
 
       const committed = committedRef.current;
       if (dy > 0 && committed < lastIndex) {
@@ -387,25 +353,39 @@ export function useDailyLoopPin({
       }
     };
 
+    /**
+     * Scroll position: sync when the pin is re-entered or when scrolling up,
+     * so reverse playback from sections below stays aligned with scroll.
+     */
+    const onScroll = () => {
+      const engaged = isPinEngaged();
+      const scrollingUp = window.scrollY < lastScrollYRef.current - 0.5;
+      const enteredPin = engaged && !pinEngagedRef.current;
+
+      pinEngagedRef.current = engaged;
+      lastScrollYRef.current = window.scrollY;
+
+      if (!engaged || animatingRef.current) return;
+      if (enteredPin) {
+        syncFromScrollPosition(true);
+      } else if (scrollingUp) {
+        syncFromScrollPosition(false);
+      }
+    };
+
     const onResize = () => {
       if (animatingRef.current) return;
+      // Pin-track height changes (extraPinVh) skew scroll progress — never
+      // re-derive the face from scroll here or a settled state can flash forward.
       settleAt(committedRef.current);
     };
 
-    armedRef.current = true;
-    settleAt(0);
-    // Align to current scroll in case the page reloads mid-section.
-    requestAnimationFrame(() => {
-      const absolute = readAbsoluteIndex();
-      if (absolute !== 0) {
-        // Jump to the face without animating a long catch-up chain on load.
-        settleAt(absolute);
-        armedRef.current = true;
-        clearGestureIdle();
-      }
-    });
+    lastScrollYRef.current = window.scrollY;
+    pinEngagedRef.current = isPinEngaged();
+    settleAt(readTargetIndex());
 
     window.addEventListener('wheel', onWheel, { passive: true });
+    window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onResize);
     const resizeObserver = new ResizeObserver(onResize);
     const root = pinRef.current;
@@ -413,9 +393,9 @@ export function useDailyLoopPin({
 
     return () => {
       window.removeEventListener('wheel', onWheel);
+      window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onResize);
       resizeObserver.disconnect();
-      clearGestureIdle();
       cancelAnim();
     };
   }, [
@@ -426,6 +406,7 @@ export function useDailyLoopPin({
     stepDurationMs,
     lastIndex,
     finalHoldVh,
+    holdFraction,
     scrollPerStateVh,
   ]);
 

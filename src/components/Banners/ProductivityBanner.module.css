@@ -6,7 +6,7 @@
 
 /*
  * Figma sm banner 1 (1175:10254): widget 216×208 with pt 130 on a 443×581
- * card. Desktop photo embeds that widget on beige — the image must fill the
+ * card. Desktop media embeds that widget on beige — the media must fill the
  * whole imageArea so its baked gradient meets the text below with no gap
  * for the card CSS gradient to show through as a horizontal strip.
  */
@@ -25,54 +25,73 @@
 
 .imageArea[data-visible='true'] {
   opacity: 1;
-  transform: translateY(0);
+  transform: none;
 }
 
-.imageArea picture {
-  display: block;
-  width: 100%;
-  height: 100%;
+.desktopVideo {
+  display: none;
 }
 
-@media (min-width: 768px) {
-  .card {
-    /* Flush image→text junction; spacing below the widget lives in the photo. */
-    gap: 0;
-  }
-
-  .imageArea {
-    margin: -2.25rem -2.25rem 0;
-  }
-}
-
-.image {
+.mobileVideo {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: center center;
+  pointer-events: none;
 }
 
 @media (min-width: 768px) {
-  .image {
-    /*
-     * Fill the imageArea completely (no in-flow height:auto + negative margin,
-     * which left an empty band of card gradient above the text). Cover + a
-     * slightly elevated focal point keeps the widget near Figma’s pt 130
-     * without exposing a mismatched strip at the bottom edge.
-     */
+  .card {
+    /* Flush image→text junction; spacing below the widget lives in the media. */
+    gap: 0;
+  }
+
+  .imageArea {
+    margin: -2.25rem -2.25rem 0;
+  }
+
+  .desktopVideo {
+    display: block;
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
-    margin: 0;
     object-fit: cover;
     object-position: center 32%;
+    pointer-events: none;
+  }
+
+  .mobileVideo {
+    display: none;
   }
 }
 
 .text {
   position: relative;
   z-index: 1;
+}
+
+/* Soft title entrance — slight delay after media, no heavy stagger. */
+.titleEntrance {
+  margin: 0;
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 0.65s var(--ease-standard) 0.12s,
+    transform 0.65s var(--ease-standard) 0.12s;
+}
+
+.titleEntrance[data-enter='true'] {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .titleEntrance {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
 }

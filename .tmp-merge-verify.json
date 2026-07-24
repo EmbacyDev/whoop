@@ -1,0 +1,147 @@
+{
+  "midY": 1625,
+  "midInfo": {
+    "phone": {
+      "l": 490,
+      "r": 949,
+      "t": 205,
+      "b": 1140
+    },
+    "rings": [
+      {
+        "id": "sleep",
+        "op": 0.586,
+        "labelOp": 0,
+        "l": 574.6,
+        "r": 649.7,
+        "t": 457.1,
+        "b": 550.6,
+        "w": 75.1,
+        "text": "94%Sleep"
+      },
+      {
+        "id": "recovery",
+        "op": 0.656,
+        "labelOp": 0,
+        "l": 678.7,
+        "r": 760.3,
+        "t": 453.4,
+        "b": 555.2,
+        "w": 81.7,
+        "text": "32%Recovery"
+      },
+      {
+        "id": "strain",
+        "op": 0.62,
+        "labelOp": 0,
+        "l": 789.8,
+        "r": 868.1,
+        "t": 455.3,
+        "b": 552.9,
+        "w": 78.3,
+        "text": "49%Strain"
+      },
+      {
+        "id": "sharpness",
+        "op": 0.438,
+        "labelOp": 0.98,
+        "l": 671.7,
+        "r": 767.3,
+        "t": 470.1,
+        "b": 589.3,
+        "w": 95.7,
+        "text": "11%Sharpness"
+      }
+    ],
+    "clip": [
+      {
+        "id": "sleep",
+        "ok": true,
+        "dL": -84.6,
+        "dR": -299.3
+      },
+      {
+        "id": "recovery",
+        "ok": true,
+        "dL": -188.7,
+        "dR": -188.7
+      },
+      {
+        "id": "strain",
+        "ok": true,
+        "dL": -299.8,
+        "dR": -80.9
+      },
+      {
+        "id": "sharpness",
+        "ok": true,
+        "dL": -181.7,
+        "dR": -181.7
+      }
+    ],
+    "allInside": true
+  },
+  "endInfo": {
+    "phone": {
+      "l": 531,
+      "r": 907,
+      "t": 347,
+      "b": 1113
+    },
+    "rings": [
+      {
+        "id": "sleep",
+        "op": 0,
+        "labelOp": 0,
+        "l": 648,
+        "r": 668.6,
+        "t": 576.4,
+        "b": 602.1,
+        "w": 20.6,
+        "text": "94%Sleep"
+      },
+      {
+        "id": "recovery",
+        "op": 0,
+        "labelOp": 0,
+        "l": 708.7,
+        "r": 729.3,
+        "t": 576.4,
+        "b": 602.1,
+        "w": 20.6,
+        "text": "32%Recovery"
+      },
+      {
+        "id": "strain",
+        "op": 0,
+        "labelOp": 0,
+        "l": 769.4,
+        "r": 790,
+        "t": 576.4,
+        "b": 602.1,
+        "w": 20.6,
+        "text": "49%Strain"
+      },
+      {
+        "id": "sharpness",
+        "op": 1,
+        "labelOp": 0.98,
+        "l": 648.8,
+        "r": 789.2,
+        "t": 525.5,
+        "b": 700.5,
+        "w": 140.4,
+        "text": "58%Sharpness"
+      }
+    ],
+    "clip": [
+      {
+        "id": "sharpness",
+        "ok": true,
+        "dL": -117.8,
+        "dR": -117.8
+      }
+    ],
+    "allInside": true
+  }
+}
